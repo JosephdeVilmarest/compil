@@ -1,12 +1,3 @@
-class A {
-def f() : Int = { return 0 };
-def g() : Boolean = { return true }
-}
-class B extends A {
-var x : Int = 0;
-override def f() : Int = { return 1 };
-def h() : Boolean = { return false }
-}
 
 object Main {
     def main(args: Array[String]) {

@@ -1,25 +1,79 @@
 .text
 	.globl	main
 main:
+	call C_Main
 	call M_Main_main
 	xorq %rax, %rax
 	ret
 C_Main:
-C_A:
+	movq $8, %rdi
+	call malloc
+	movq $D_Main, 0(%rax)
+	ret
+C_Nothing:
 	movq $8, %rdi
 	call malloc
 	movq %rax, %r12
-	movq $D_A, 0(%r12)
+	movq $D_Nothing, 0(%r12)
 	ret
-C_B:
+C_Null:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Null, 0(%r12)
+	ret
+C_String:
 	movq $16, %rdi
 	call malloc
 	movq %rax, %r12
-	movq $D_B, 0(%r12)
+	movq $D_String, 0(%r12)
 	addq $8, %r12
-	pushq $0
 	popq %rbx
 	movq %rbx, 0(%r12)
+	ret
+C_AnyRef:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_AnyRef, 0(%r12)
+	ret
+C_Any:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Any, 0(%r12)
+	ret
+C_Boolean:
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Boolean, 0(%r12)
+	addq $8, %r12
+	popq %rbx
+	movq %rbx, 0(%r12)
+	ret
+C_Int:
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Int, 0(%r12)
+	addq $8, %r12
+	popq %rbx
+	movq %rbx, 0(%r12)
+	ret
+C_Unit:
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Unit, 0(%r12)
+	addq $8, %r12
+	movq $0, 0(%r12)
+	ret
+C_AnyVal:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_AnyVal, 0(%r12)
 	ret
 M_Main_main:
 	pushq $1
@@ -58,16 +112,12 @@ print_string:
 .data
 D_Main:
 	.quad D_Any, M_Main_main
-D_A:
-	.quad D_AnyRef, A_f, A_g
 D_Any:
 	.quad D_Any
 D_AnyRef:
 	.quad D_Any
 D_AnyVal:
 	.quad D_Any
-D_B:
-	.quad D_A, B_f, A_g, B_h
 D_Boolean:
 	.quad D_AnyVal
 D_Int:
