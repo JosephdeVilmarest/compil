@@ -1,0 +1,3 @@
+
+class C() {  }
+object Main { def main(args: Array[String]) { } }

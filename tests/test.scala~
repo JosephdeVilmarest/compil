@@ -1,0 +1,5 @@
+object Main {
+    def main(args: Array[String]) {
+        if (1<2) print("je suis content") else print("je ne suis pas content")
+    }
+}
