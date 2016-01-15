@@ -61,15 +61,14 @@ let rec compile_expr e = match e.e with
     | Eneg e -> (* la négation de b vaut 1-b *)
             compile_expr e ++
             popq (rax) ++
-            addq (imm 8) (reg rax) ++
-            negq (ind (rax)) ++
-            addq (imm 1) (ind rax) ++
+            negq (ind ~ofs:8 rax) ++
+            addq (imm 1) (ind ~ofs:8 rax) ++
             pushq (reg rax)
     
     | Emoins e ->
             compile_expr e ++
             popq (rax) ++
-            negq (reg 8(rax)) ++
+            negq (ind ~ofs:8 rax) ++
             pushq (reg rax)
     
     | Eop (e, o, f) when o.o = Et -> (* il faut évaluer paresseusement *)
@@ -77,7 +76,7 @@ let rec compile_expr e = match e.e with
         numero:= !numero + 1;
             compile_expr e ++
             popq (rax) ++
-            cmpq (imm 0) (ind 8(rax)) ++ (* on teste si rax = 0 car sinon rax = 1 *)
+            cmpq (imm 0) (ind ~ofs:8 rax) ++ (* on teste si rax = 0 car sinon rax = 1 *)
             je ("L"^s) ++
             compile_expr f ++
             popq (rax) ++
@@ -88,7 +87,7 @@ let rec compile_expr e = match e.e with
         numero:= !numero + 1;
             compile_expr e ++
             popq (rax) ++
-            cmpq (imm 0) (ind 8(rax)) ++
+            cmpq (imm 0) (ind ~ofs:8 rax) ++
             jne ("L"^s) ++
             compile_expr f ++
             popq (rax) ++
@@ -99,32 +98,64 @@ let rec compile_expr e = match e.e with
             compile_expr f ++
             popq (rbx) ++
             popq (rax) ++
+            pushq (reg rax) ++
             (match o.o with
                 (* il y a peut être un problème sur l'égalité structurelle :
                     Je la teste pareil que l'autre égalité alors qu'il faut 
                     peut être l'utiliser avec les adresses des paramètres ? *)
-                | Eq -> cmpq (ind 8(rax)) (ind 8(rbx)) ++ sete (ind 8(al)) ++ movzbq (ind 8(al)) rax
-                | Ne -> cmpq (ind rax) (reg rbx) ++ setne (reg al) ++ movzbq (reg al) rax
-                | Dbleg -> cmpq (reg rax) (reg rbx) ++ sete (reg al) ++ movzbq (reg al) rax (* on teste si rbx - rax est nul *)
-                | Diff -> cmpq (reg rax) (reg rbx) ++ setne (reg al) ++ movzbq (reg al) rax
-                | Inf -> cmpq (reg rbx) (reg rax) ++ sets (reg al) ++ movzbq (reg al) rax
-                | Infeg -> cmpq (reg rax) (reg rbx) ++ setns (reg al) ++ movzbq (reg al) rax
-                | Sup -> cmpq (reg rax) (reg rbx) ++ sets (reg al) ++ movzbq (reg al) rax
-                | Supeg -> cmpq (reg rbx) (reg rax) ++ setns (reg al) ++ movzbq (reg al) rax
-                | Add -> addq (reg rbx) (reg rax)
-                | Sub -> subq (reg rbx) (reg rax)
-                | Mul -> imulq (reg rbx) (reg rax)
-                | Div -> cqto ++ idivq (reg rbx)
-                | Reste -> cqto ++ idivq (reg rbx) ++ movq (reg rdx) (reg rax)
-                | _ -> failwith "cas non traité dans op") ++
-            pushq (reg rax)
+                | Eq -> cmpq (ind ~ofs:8 rax) (ind ~ofs:8 rbx) ++
+                        sete (reg cl) ++ movzbq (reg cl) rcx ++
+                        movq (reg rcx) (ind ~ofs:8 rax)
+                | Ne -> cmpq (ind ~ofs:8 rax) (ind ~ofs:8 rbx) ++ 
+                        setne (reg cl) ++ movzbq (reg cl) rcx ++ 
+                        movq (reg rcx) (ind ~ofs:8 rax)
+                | Dbleg ->
+                        cmpq (ind ~ofs:8 rax) (ind ~ofs:8 rbx) ++ 
+                        sete (reg cl) ++ movzbq (reg cl) rcx ++ 
+                        movq (reg rcx) (ind ~ofs:8 rax)
+                | Diff -> 
+                        cmpq (ind ~ofs:8 rax) (ind ~ofs:8 rbx) ++ 
+                        setne (reg cl) ++ movzbq (reg cl) rcx ++ 
+                        movq (reg rcx) (ind ~ofs:8 rax)
+                | Inf ->
+                        cmpq (ind ~ofs:8 rbx) (ind ~ofs:8 rax) ++ 
+                        sets (reg cl) ++ movzbq (reg cl) rcx ++ 
+                        movq (reg rcx) (ind ~ofs:8 rax)
+                | Infeg ->
+                        cmpq (ind ~ofs:8 rax) (ind ~ofs:8 rbx) ++ 
+                        setns (reg cl) ++ movzbq (reg cl) rcx ++ 
+                        movq (reg rcx) (ind ~ofs:8 rax)
+                | Sup -> 
+                        cmpq (ind ~ofs:8 rax) (ind ~ofs:8 rbx) ++
+                        sets (reg cl) ++ movzbq (reg cl) rcx ++ 
+                        movq (ind ~ofs:8 rcx) (ind ~ofs:8 rax)
+                | Supeg -> 
+                        cmpq (ind ~ofs:8 rbx) (ind ~ofs:8 rax) ++ 
+                        setns (reg cl) ++ movzbq (reg cl) rcx ++ 
+                        movq (ind ~ofs:8 rcx) (ind ~ofs:8 rax)
+                | Add -> addq (ind ~ofs:8 rbx) (ind ~ofs:8 rax)
+                | Sub -> subq (ind ~ofs:8 rbx) (ind ~ofs:8 rax)
+                | Mul -> imulq (ind ~ofs:8 rbx) (ind ~ofs:8 rax)
+                | Div ->
+                        movq (reg rax) (reg rcx) ++
+                        movq (ind ~ofs:8 rax) (reg rax) ++ 
+                        movq (ind ~ofs:8 rbx) (reg rbx) ++ 
+                        cqto ++ idivq (ind rbx) ++ 
+                        movq (reg rax) (ind ~ofs:8 rcx)
+                | Reste ->
+                        movq (reg rax) (reg rcx) ++
+                        movq (ind ~ofs:8 rax) (reg rax) ++ 
+                        movq (ind ~ofs:8 rbx) (reg rbx) ++ 
+                        cqto ++ idivq (ind rbx) ++ 
+                        movq (reg rdx) (ind ~ofs:8 rcx)
+                | _ -> failwith "cas traité ailleurs")
     
     | Eif (e, e1, e2) -> 
         let s1 = string_of_int !numero and s2 = string_of_int (!numero+1) in
         numero:= !numero + 2;
             compile_expr e ++
             popq (rax) ++
-            cmpq (imm 0) (reg rax) ++
+            cmpq (imm 0) (ind ~ofs:8 rax) ++
             je ("L"^s1) ++
             compile_expr e1 ++
             jmp ("L"^s2) ++
@@ -138,7 +169,7 @@ let rec compile_expr e = match e.e with
         label ("L"^s1) ++
             compile_expr e1 ++
             popq (rax) ++
-            cmpq (imm 0) (reg rax) ++
+            cmpq (imm 0) (ind ~ofs:8 rax) ++
             je ("L"^s2) ++
             compile_expr e2 ++
             jmp ("L"^s1) ++

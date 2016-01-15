@@ -1,19 +1,97 @@
 .text
 	.globl	main
 main:
+	call C_Main
 	call M_Main_main
 	xorq %rax, %rax
 	ret
 C_Main:
+	movq $8, %rdi
+	call malloc
+	movq $D_Main, 0(%rax)
+	ret
+C_Nothing:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Nothing, 0(%r12)
+	ret
+C_Null:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Null, 0(%r12)
+	ret
+C_String:
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_String, 0(%r12)
+	addq $8, %r12
+	popq %rbx
+	movq %rbx, 0(%r12)
+	ret
+C_AnyRef:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_AnyRef, 0(%r12)
+	ret
+C_Any:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Any, 0(%r12)
+	ret
+C_Boolean:
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Boolean, 0(%r12)
+	addq $8, %r12
+	popq %rbx
+	movq %rbx, 0(%r12)
+	ret
+C_Int:
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Int, 0(%r12)
+	addq $8, %r12
+	popq %rbx
+	movq %rbx, 0(%r12)
+	ret
+C_Unit:
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Unit, 0(%r12)
+	addq $8, %r12
+	popq %rbx
+	movq %rbx, 0(%r12)
+	ret
+C_AnyVal:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_AnyVal, 0(%r12)
+	ret
 M_Main_main:
 L0:
 	pushq $0
+	call C_Boolean
+	pushq %rax
 	popq %rax
-	cmpq $0, %rax
+	cmpq $0, 8(%rax)
 	je L1
+	pushq $0
+	call C_Int
+	pushq %rax
 	jmp L0
 L1:
 	pushq $.S2
+	call C_String
+	pushq %rax
 	popq %rdi
 	call print_string
 	ret
