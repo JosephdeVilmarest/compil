@@ -42,12 +42,16 @@ print_string:
 .data
 D_Main:
 	.quad D_Any, M_Main_main
+D_A:
+	.quad D_AnyRef, A_f, A_g
 D_Any:
 	.quad D_Any
 D_AnyRef:
 	.quad D_Any
 D_AnyVal:
 	.quad D_Any
+D_B:
+	.quad D_A, B_f, A_g, B_h
 D_Boolean:
 	.quad D_AnyVal
 D_Int:

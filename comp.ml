@@ -8,36 +8,64 @@ let l_empty = ({pos_fname = ""; pos_lnum = 0; pos_bol = 0; pos_cnum = 0},
 
 (* une solution pour les chaines de caractères: maintenir une référence mise à nop au début de la fonction comp dans laquelle on met toutes les chaines rencontrées et ainsi à la fin on les met dans le data, on les associe à des entiers. La référence numero sera modifié dès qu'on écrira une chaine ou une étiquette *)
 
-module Dmap = Map.Make (String)
+module Omaxmap = Map.Make(String)
+let omax_empty = Omaxmap.add "Nothing" (0, 0) (Omaxmap.add "Null" (0, 0) (Omaxmap.add "String" (0, 0) (Omaxmap.add "AnyRef" (0, 0) (Omaxmap.add "Unit" (0, 0) (Omaxmap.add "Int" (0, 0) (Omaxmap.add "Boolean" (0, 0) (Omaxmap.add "AnyVal" (0, 0) (Omaxmap.add "Any" (0, 0) Omaxmap.empty))))))))
+
+module Key = struct type t = string * string let compare = Pervasives.compare end
+module Ocmap = Map.Make(Key) (* donne les offset des champs d'une classe *)
+module Ommap = Map.Make(Key) (* donne les offset des méthodes d'une classe *)
+
+module Dmap = Map.Make (String) (* donne le descripteur d'une classe *)
 let descr_empty = Dmap.add "Nothing" ["D_Null"] (Dmap.add "Null" ["D_String"] (Dmap.add "String" ["D_AnyRef"] (Dmap.add "AnyRef" ["D_Any"] (Dmap.add "Unit" ["D_AnyVal"] (Dmap.add "Int" ["D_AnyVal"] (Dmap.add "Boolean" ["D_AnyVal"] (Dmap.add "AnyVal" ["D_Any"] (Dmap.add "Any" ["D_Any"] Dmap.empty))))))))
 
 let chaines = ref nop and numero = ref 0 and descr = ref descr_empty
+and omax = ref omax_empty and oc = ref Ocmap.empty and om = ref Ommap.empty
 
 
 
-(** Descripteurs de classes **)
+(** Compilation des classes **)
+
+let aux_param p c c_extends numc =
+    let (s, _) = p.p in
+    if Ocmap.exists (fun (c, x) k -> x = s) !oc then ()
+    else (oc:= Ocmap.add (c, s) !numc !oc; numc:= !numc+1)
 
 let rec aux_modifie x y = function
     | [] -> failwith "override pas définie dans la classe héritée"
     | t::q when t = x -> y::q
     | t::q -> t::(aux_modifie x y q)
 
-let aux_descr d c c_extends l = match d.d with
-    | Dvar _ -> l
-    | Dmethode {m=Mdef (s,_,_,_,_); lm=_} -> List.append l [c^"_"^s]
-    | Dmethode {m=Moverride (s,_,_,_,_); lm=_} -> aux_modifie (c_extends^"_"^s) (c^"_"^s) l
+let aux_decl d c c_extends l numc numm = match d.d with
+    | Dvar v ->
+        let id = id_of_var v in
+        (* il faut regarder si id est dans la classe extends *)
+        if Ocmap.exists (fun (c, x) k -> x = c) !oc then ()
+        else (oc:= Ocmap.add (c, id) !numc !oc; numc:= !numc+1)
+    | Dmethode {m=Mdef (s,_,_,_,_); lm=_} -> (* on sait ici que s n'est pas dans la classe extends *)
+        l:= List.append !l [c^"_"^s];
+        om:= Ommap.add (c, s) !numm !om; numm:= !numm+1
+    | Dmethode {m=Moverride (s,_,_,_,_); lm=_} -> (* on sait ici que s est dans extends, on ne change pas son offset *)
+        l:= aux_modifie (c_extends^"_"^s) (c^"_"^s) !l
 
-let ajout_descripteur cl =
-    let (c,_,_,t,_,ld) = cl.c in let Typ (c_extends,_) = t.t in
-    let l = ref (List.append ["D_"^c_extends] (List.tl (Dmap.find c_extends !descr))) in
-    List.iter (fun d -> l:= aux_descr d c c_extends !l) ld;
+let comp_classe cl =
+    let (c,_,lp,t,_,ld) = cl.c in let Typ (c_extends,_) = t.t in
+    let n1, n2 = Omaxmap.find c_extends !omax in
+    let numc = ref (n1+1) and numm = ref (n2+1) in 
+    let l = ref (List.append ["D_"^c_extends] (List.tl (Dmap.find c_extends !descr))) in (* on initialise l avec c_extends *)
+    Ocmap.iter (fun (s, x) k -> oc:= Ocmap.add (c,x) k !oc) (Ocmap.filter (fun (s, x) k -> s = c_extends) !oc);
+    Ommap.iter (fun (s, x) k -> om:= Ommap.add (c,x) k !om) (Ommap.filter (fun (s, x) k -> s = c_extends) !om);
+    List.iter (fun p -> aux_param p c c_extends numc) lp;
+    List.iter (fun d -> aux_decl d c c_extends l numc numm) ld;
+    omax:= Omaxmap.add c (!numc, !numm) !omax;
     descr:= Dmap.add c !l !descr
 
-let descripteurs_de_classes lc =
-    List.iter (fun cl -> ajout_descripteur cl) lc
+let compile_classes lc =
+    List.iter (fun cl -> comp_classe cl) lc
 
 
 
+
+(** Compilation des expressions **)
 
 let rec code_of_expr e = match e.e with
     | Eentier i -> pushq (imm i)
@@ -148,8 +176,8 @@ let rec code_of_expr e = match e.e with
             jmp ("L"^s1) ++
         label ("L"^s2)
     
-    | Ereturnvide -> failwith "à faire"
-    | Ereturn e -> failwith "à faire"
+    | Ereturnvide -> movq (imm 0) (reg rax) ++ ret
+    | Ereturn e -> code_of_expr e ++ popq (rax) ++ ret
     
     | Eprint e when e.te.t = Typ ("Int", {at= []; lat= l_empty}) ->
             code_of_expr e ++
@@ -182,11 +210,16 @@ let code_of_classe_main cM =
 	    | [d] -> code_of_decl d
 	    | _ -> failwith ""
 
+
+
+(** Compilation d'un fichier **)
+
 let comp fichier =
     chaines:= nop; numero := 0; descr := descr_empty;
+    omax:= omax_empty; oc:= Ocmap.empty; om:= Ommap.empty;
 	let (lc, cM) = fichier.f in
 	let codemain = code_of_classe_main cM in
-	descripteurs_de_classes lc;
+	compile_classes lc;
 	{text =
 	    glabel "main" ++
 	    (* allocation *)
