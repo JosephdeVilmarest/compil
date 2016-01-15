@@ -170,6 +170,7 @@ let rec tl_of_ptcl = function
 
 
 
+
 (** Sous-typage **)
 
 let sigma_of_listes lptc lt =

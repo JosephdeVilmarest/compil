@@ -5,6 +5,22 @@ main:
 	xorq %rax, %rax
 	ret
 C_Main:
+C_A:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_A, 0(%r12)
+	ret
+C_B:
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_B, 0(%r12)
+	addq $8, %r12
+	pushq $0
+	popq %rbx
+	movq %rbx, 0(%r12)
+	ret
 M_Main_main:
 	pushq $1
 	pushq $2
