@@ -1,69 +1,46 @@
 .text
 	.globl	main
 main:
+	call C_Main
 	call M_Main_main
 	xorq %rax, %rax
 	ret
 C_Main:
-C_A:
 	movq $8, %rdi
 	call malloc
 	movq %rax, %r12
-	movq $D_A, 0(%r12)
-	ret
-C_B:
-	movq $24, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_B, 0(%r12)
+	movq $D_Main, 0(%r12)
 	ret
 M_Main_main:
 	pushq $1
-	pushq $2
-	popq %rbx
-	popq %rax
-	cmpq %rbx, %rax
-	sets %al
-	movzbq %al, %rax
+	call C_Int
 	pushq %rax
-	popq %rax
-	cmpq $0, %rax
-	je L0
-	pushq $.S3
 	popq %rdi
-	call print_string
-	jmp L1
-L0:
-	pushq $.S2
-	popq %rdi
-	call print_string
-L1:
+	call print_int
+	ret
+C_Int:
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Int, 0(%r12)
+	popq %rbx
+	movq %rbx, -8(%r12)
 	ret
 print_int:
-	movq %rdi, %rsi
+	movq -8(%rdi), %rsi
 	movq $.Sprint_int, %rdi
-	movq $0, %rax
-	call printf
-	ret
-print_string:
-	movq %rdi, %rsi
-	movq $.Sprint_string, %rdi
 	movq $0, %rax
 	call printf
 	ret
 .data
 D_Main:
 	.quad D_Any, M_Main_main
-D_A:
-	.quad D_AnyRef, A_f, A_g
 D_Any:
 	.quad D_Any
 D_AnyRef:
 	.quad D_Any
 D_AnyVal:
 	.quad D_Any
-D_B:
-	.quad D_A, B_f, A_g, B_h
 D_Boolean:
 	.quad D_AnyVal
 D_Int:
@@ -78,9 +55,3 @@ D_Unit:
 	.quad D_AnyVal
 .Sprint_int:
 	.string "%d"
-.Sprint_string:
-	.string "%s"
-.S2:
-	.string "je ne suis pas content\n"
-.S3:
-	.string "je suis content\n"

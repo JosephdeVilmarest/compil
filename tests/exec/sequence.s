@@ -8,7 +8,29 @@ main:
 C_Main:
 	movq $8, %rdi
 	call malloc
-	movq $D_Main, 0(%rax)
+	movq %rax, %r12
+	movq $D_Main, 0(%r12)
+	ret
+M_Main_main:
+	movq %rsp, %rbp
+	subq $0, %rsp
+	pushq $.S0
+	call C_String
+	pushq %rax
+	popq %rdi
+	call print_string
+	pushq $.S1
+	call C_String
+	pushq %rax
+	popq %rdi
+	call print_string
+	pushq $.S2
+	call C_String
+	pushq %rax
+	popq %rdi
+	call print_string
+	movq %rbp, %rsp
+	addq $8, %rsp
 	ret
 C_Nothing:
 	movq $8, %rdi
@@ -76,31 +98,14 @@ C_AnyVal:
 	movq %rax, %r12
 	movq $D_AnyVal, 0(%r12)
 	ret
-M_Main_main:
-	pushq $.S0
-	call C_String
-	pushq %rax
-	popq %rdi
-	call print_string
-	pushq $.S1
-	call C_String
-	pushq %rax
-	popq %rdi
-	call print_string
-	pushq $.S2
-	call C_String
-	pushq %rax
-	popq %rdi
-	call print_string
-	ret
 print_int:
-	movq %rdi, %rsi
+	movq 8(%rdi), %rsi
 	movq $.Sprint_int, %rdi
 	movq $0, %rax
 	call printf
 	ret
 print_string:
-	movq %rdi, %rsi
+	movq 8(%rdi), %rsi
 	movq $.Sprint_string, %rdi
 	movq $0, %rax
 	call printf

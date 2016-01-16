@@ -8,7 +8,79 @@ main:
 C_Main:
 	movq $8, %rdi
 	call malloc
-	movq $D_Main, 0(%rax)
+	movq %rax, %r12
+	movq $D_Main, 0(%r12)
+	ret
+M_Main_main:
+	movq %rsp, %rbp
+	subq $0, %rsp
+	pushq $1
+	call C_Boolean
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L0
+	pushq $0
+	call C_Boolean
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L2
+	pushq $0
+	call C_Int
+	pushq %rax
+	jmp L3
+L2:
+	pushq $1
+	call C_Int
+	pushq %rax
+	pushq $2
+	call C_Int
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	cmpq 8(%rax), %r13
+	sete %cl
+	movzbq %cl, %rcx
+	movq %rcx, %rax
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L4
+	pushq $0
+	call C_Int
+	pushq %rax
+	pushq $0
+	call C_Int
+	pushq %rax
+	popq %r14
+	popq %r13
+	movq 8(%r13), %rax
+	movq 8(%r14), %rbx
+	cqto
+	idivq %rbx
+	movq %rax, 8(%r13)
+	pushq %r13
+	popq %rdi
+	call print_int
+	jmp L5
+L4:
+	pushq $.S6
+	call C_String
+	pushq %rax
+	popq %rdi
+	call print_string
+L5:
+L3:
+	jmp L1
+L0:
+	pushq $0
+	call C_Int
+	pushq %rax
+L1:
+	movq %rbp, %rsp
+	addq $8, %rsp
 	ret
 C_Nothing:
 	movq $8, %rdi
@@ -76,79 +148,14 @@ C_AnyVal:
 	movq %rax, %r12
 	movq $D_AnyVal, 0(%r12)
 	ret
-M_Main_main:
-	pushq $1
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L0
-	pushq $0
-	call C_Boolean
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L2
-	pushq $0
-	call C_Int
-	pushq %rax
-	jmp L3
-L2:
-	pushq $1
-	call C_Int
-	pushq %rax
-	pushq $2
-	call C_Int
-	pushq %rax
-	popq %rbx
-	popq %rax
-	pushq %rax
-	cmpq 8(%rax), 8(%rbx)
-	sete %cl
-	movzbq %cl, %rcx
-	movq %rcx, 8(%rax)
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L4
-	pushq $0
-	call C_Int
-	pushq %rax
-	pushq $0
-	call C_Int
-	pushq %rax
-	popq %rbx
-	popq %rax
-	pushq %rax
-	movq %rax, %rcx
-	movq 8(%rax), %rax
-	movq 8(%rbx), %rbx
-	cqto
-	idivq 0(%rbx)
-	movq %rax, 8(%rcx)
-	popq %rdi
-	call print_int
-	jmp L5
-L4:
-	pushq $.S6
-	call C_String
-	pushq %rax
-	popq %rdi
-	call print_string
-L5:
-L3:
-	jmp L1
-L0:
-	pushq $0
-	call C_Int
-	pushq %rax
-L1:
-	ret
 print_int:
-	movq %rdi, %rsi
+	movq 8(%rdi), %rsi
 	movq $.Sprint_int, %rdi
 	movq $0, %rax
 	call printf
 	ret
 print_string:
-	movq %rdi, %rsi
+	movq 8(%rdi), %rsi
 	movq $.Sprint_string, %rdi
 	movq $0, %rax
 	call printf

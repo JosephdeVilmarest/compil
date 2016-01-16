@@ -8,104 +8,27 @@ main:
 C_Main:
 	movq $8, %rdi
 	call malloc
-	movq $D_Main, 0(%rax)
-	ret
-C_Nothing:
-	movq $8, %rdi
-	call malloc
 	movq %rax, %r12
-	movq $D_Nothing, 0(%r12)
+	movq $D_Main, 0(%r12)
 	ret
-C_Null:
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Null, 0(%r12)
-	ret
-C_String:
-	movq $16, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_String, 0(%r12)
-	addq $8, %r12
-	popq %rbx
-	movq %rbx, 0(%r12)
-	ret
-C_AnyRef:
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_AnyRef, 0(%r12)
-	ret
-C_Any:
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Any, 0(%r12)
-	ret
-C_Boolean:
-	movq $16, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Boolean, 0(%r12)
-	addq $8, %r12
-	popq %rbx
-	movq %rbx, 0(%r12)
+M_Main_main:
+	pushq $1
+	call C_Int
+	pushq %rax
+	popq %rdi
+	call print_int
 	ret
 C_Int:
 	movq $16, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_Int, 0(%r12)
-	addq $8, %r12
 	popq %rbx
-	movq %rbx, 0(%r12)
-	ret
-C_Unit:
-	movq $16, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Unit, 0(%r12)
-	addq $8, %r12
-	movq $0, 0(%r12)
-	ret
-C_AnyVal:
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_AnyVal, 0(%r12)
-	ret
-M_Main_main:
-	pushq $1
-	pushq $2
-	popq %rbx
-	popq %rax
-	cmpq %rbx, %rax
-	sets %al
-	movzbq %al, %rax
-	pushq %rax
-	popq %rax
-	cmpq $0, %rax
-	je L0
-	pushq $.S3
-	popq %rdi
-	call print_string
-	jmp L1
-L0:
-	pushq $.S2
-	popq %rdi
-	call print_string
-L1:
+	movq %rbx, 8(%r12)
 	ret
 print_int:
-	movq %rdi, %rsi
+	movq 8(%rdi), %rsi
 	movq $.Sprint_int, %rdi
-	movq $0, %rax
-	call printf
-	ret
-print_string:
-	movq %rdi, %rsi
-	movq $.Sprint_string, %rdi
 	movq $0, %rax
 	call printf
 	ret
@@ -132,9 +55,3 @@ D_Unit:
 	.quad D_AnyVal
 .Sprint_int:
 	.string "%d"
-.Sprint_string:
-	.string "%s"
-.S2:
-	.string "je ne suis pas content\n"
-.S3:
-	.string "je suis content\n"

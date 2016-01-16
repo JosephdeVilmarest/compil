@@ -8,7 +8,114 @@ main:
 C_Main:
 	movq $8, %rdi
 	call malloc
-	movq $D_Main, 0(%rax)
+	movq %rax, %r12
+	movq $D_Main, 0(%r12)
+	ret
+M_Main_main:
+	movq %rsp, %rbp
+	subq $0, %rsp
+	pushq $0
+	call C_Boolean
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L4
+	pushq $1
+	call C_Int
+	pushq %rax
+	pushq $0
+	call C_Int
+	pushq %rax
+	popq %r14
+	popq %r13
+	movq 8(%r13), %rax
+	movq 8(%r14), %rbx
+	cqto
+	idivq %rbx
+	movq %rax, 8(%r13)
+	pushq %r13
+	pushq $3
+	call C_Int
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	cmpq 8(%rax), %r13
+	sete %cl
+	movzbq %cl, %rcx
+	movq %rcx, %rax
+	pushq %rax
+	popq %rax
+L4:
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L0
+	pushq $.S3
+	call C_String
+	pushq %rax
+	popq %rdi
+	call print_string
+	jmp L1
+L0:
+	pushq $.S2
+	call C_String
+	pushq %rax
+	popq %rdi
+	call print_string
+L1:
+	pushq $1
+	call C_Boolean
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	jne L9
+	pushq $1
+	call C_Int
+	pushq %rax
+	pushq $0
+	call C_Int
+	pushq %rax
+	popq %r14
+	popq %r13
+	movq 8(%r13), %rax
+	movq 8(%r14), %rbx
+	cqto
+	idivq %rbx
+	movq %rax, 8(%r13)
+	pushq %r13
+	pushq $2
+	call C_Int
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	cmpq 8(%rax), %r13
+	sete %cl
+	movzbq %cl, %rcx
+	movq %rcx, %rax
+	pushq %rax
+	popq %rax
+L9:
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L5
+	pushq $.S8
+	call C_String
+	pushq %rax
+	popq %rdi
+	call print_string
+	jmp L6
+L5:
+	pushq $.S7
+	call C_String
+	pushq %rax
+	popq %rdi
+	call print_string
+L6:
+	movq %rbp, %rsp
+	addq $8, %rsp
 	ret
 C_Nothing:
 	movq $8, %rdi
@@ -76,114 +183,14 @@ C_AnyVal:
 	movq %rax, %r12
 	movq $D_AnyVal, 0(%r12)
 	ret
-M_Main_main:
-	pushq $0
-	call C_Boolean
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L4
-	pushq $1
-	call C_Int
-	pushq %rax
-	pushq $0
-	call C_Int
-	pushq %rax
-	popq %rbx
-	popq %rax
-	pushq %rax
-	movq %rax, %rcx
-	movq 8(%rax), %rax
-	movq 8(%rbx), %rbx
-	cqto
-	idivq 0(%rbx)
-	movq %rax, 8(%rcx)
-	pushq $3
-	call C_Int
-	pushq %rax
-	popq %rbx
-	popq %rax
-	pushq %rax
-	cmpq 8(%rax), 8(%rbx)
-	sete %cl
-	movzbq %cl, %rcx
-	movq %rcx, 8(%rax)
-	popq %rax
-L4:
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L0
-	pushq $.S3
-	call C_String
-	pushq %rax
-	popq %rdi
-	call print_string
-	jmp L1
-L0:
-	pushq $.S2
-	call C_String
-	pushq %rax
-	popq %rdi
-	call print_string
-L1:
-	pushq $1
-	popq %rax
-	cmpq $0, 8(%rax)
-	jne L9
-	pushq $1
-	call C_Int
-	pushq %rax
-	pushq $0
-	call C_Int
-	pushq %rax
-	popq %rbx
-	popq %rax
-	pushq %rax
-	movq %rax, %rcx
-	movq 8(%rax), %rax
-	movq 8(%rbx), %rbx
-	cqto
-	idivq 0(%rbx)
-	movq %rax, 8(%rcx)
-	pushq $2
-	call C_Int
-	pushq %rax
-	popq %rbx
-	popq %rax
-	pushq %rax
-	cmpq 8(%rax), 8(%rbx)
-	sete %cl
-	movzbq %cl, %rcx
-	movq %rcx, 8(%rax)
-	popq %rax
-L9:
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L5
-	pushq $.S8
-	call C_String
-	pushq %rax
-	popq %rdi
-	call print_string
-	jmp L6
-L5:
-	pushq $.S7
-	call C_String
-	pushq %rax
-	popq %rdi
-	call print_string
-L6:
-	ret
 print_int:
-	movq %rdi, %rsi
+	movq 8(%rdi), %rsi
 	movq $.Sprint_int, %rdi
 	movq $0, %rax
 	call printf
 	ret
 print_string:
-	movq %rdi, %rsi
+	movq 8(%rdi), %rsi
 	movq $.Sprint_string, %rdi
 	movq $0, %rax
 	call printf
