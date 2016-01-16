@@ -20,6 +20,7 @@ let descr_empty = Dmap.add "Nothing" ["D_Null"] (Dmap.add "Null" ["D_String"] (D
 
 let chaines = ref nop and numero = ref 0 and descr = ref descr_empty
 and omax = ref omax_empty and oc = ref Ocmap.empty and om = ref Ommap.empty
+and thisref = ref ""
 
 module Emap = Map.Make(String) (* donne l'offset par rapport à rsp de l'objet associé a la string (variable locale) *)     
 
@@ -36,7 +37,7 @@ let rec alloc_expr (env, k) e = match e.e with
 
 and alloc_bloc (env, k) b = match b.b with
     | [] -> (env, k)
-    | {b1= Bvar v ;lb1=_}::q -> alloc_bloc (Emap.add (id_of_var v) (k-1) env, k-1) {b=q; lb=b.lb}
+    | {b1= Bvar v ;lb1=_}::q -> alloc_bloc (Emap.add (id_of_var v) (k) env, k-1) {b=q; lb=b.lb}
     | {b1= Bexpr e ;lb1=_}::q -> alloc_bloc (alloc_expr (env, k) e) {b=q; lb=b.lb}
 
 let alloc_methode m =
@@ -45,24 +46,39 @@ let alloc_methode m =
 
 let rec compile_expr env e = match e.e with
     | Eentier i ->
-            pushq (imm i) ++ call "C_Int" ++ pushq (reg rax)
+            pushq (imm i) ++
+            call "C_Int" ++ 
+            addq (imm 8) (reg rsp) ++
+            pushq (reg rax)
     
     | Echaine c ->
         let s = string_of_int !numero in
         numero:= !numero + 1;
         chaines:= !chaines ++ label (".S"^s) ++ string c;
-            pushq (ilab (".S"^s)) ++ call "C_String" ++ pushq (reg rax)       
+            pushq (ilab (".S"^s)) ++
+            call "C_String" ++
+            addq (imm 8) (reg rsp) ++
+            pushq (reg rax)       
     
     | Ebool b ->
-        (if b then pushq (imm 1) else pushq (imm 0)) ++ call "C_Boolean" ++ pushq (reg rax)
+        (if b then pushq (imm 1) else pushq (imm 0)) ++ 
+            call "C_Boolean" ++ 
+            addq (imm 8) (reg rsp) ++
+            pushq (reg rax)
     
     | Eunit ->
-            pushq (imm 0) ++ call "C_Int" ++ pushq (reg rax)
+            pushq (imm 0) ++
+            call "C_Int" ++ 
+            addq (imm 8) (reg rsp) ++
+            pushq (reg rax)
     
     | Ethis -> failwith "à faire"
      
     | Enull ->
-            pushq (imm 0) ++ call "C_Int" ++ pushq (reg rax)
+            pushq (imm 0) ++ 
+            call "C_Int" ++ 
+            addq (imm 8) (reg rsp) ++
+            pushq (reg rax)
     
     | Epar e -> compile_expr env e
     
@@ -84,6 +100,7 @@ let rec compile_expr env e = match e.e with
             movq (reg rax) (ind ~ofs:o rbp) ++
             pushq (imm 0) ++
             call "C_Unit" ++
+            addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     | Eaccexp ({a= Aexpid (e1, id); la=_}, e2) ->
         let Typ(c,_) = e1.te.t in
@@ -95,10 +112,20 @@ let rec compile_expr env e = match e.e with
             movq (reg rbx) (ind ~ofs:o rax) ++
             pushq (imm 0) ++
             call "C_Unit" ++
+            addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     
-    | Eaccargexp (a, ar, e) -> failwith "à faire"
-        
+    | Eaccargexp ({a= Aid id; la=_}, ar, le) ->
+        List.fold_right (fun e code -> compile_expr env e ++ code) le nop ++
+            call ("M_"^(!thisref)^"_"^id) ++
+            addq (imm (8*List.length le)) (reg rsp) ++
+            pushq (reg rax)
+    | Eaccargexp ({a= Aexpid (e,id); la=_}, ar, le) ->
+        let Typ(c,_) = e.te.t in
+        List.fold_right (fun e code -> compile_expr env e ++ code) le nop ++
+            call ("M_"^c^"_"^id) ++
+            addq (imm (8*List.length le)) (reg rsp) ++
+            pushq (reg rax)
     
     | Enewidargexp (s, ar, le) -> (* on met les expressions sur la pile et on appelle le constructeur *)
         List.fold_right (fun e code -> compile_expr env e ++ code) le nop ++
@@ -173,35 +200,35 @@ let rec compile_expr env e = match e.e with
                 | Eq -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
                         sete (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (reg rax)
+                        movq (reg rcx) (ind ~ofs:8 rax)
                 | Ne -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
                         setne (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (reg rax)
+                        movq (reg rcx) (ind ~ofs:8 rax)
                 | Dbleg ->
                         cmpq (ind ~ofs:8 rax) (reg r13) ++
                         sete (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (reg rax)
+                        movq (reg rcx) (ind ~ofs:8 rax)
                 | Diff -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
                         setne (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (reg rax)
+                        movq (reg rcx) (ind ~ofs:8 rax)
                 | Inf -> 
                         cmpq (reg r13) (ind ~ofs:8 rax) ++ 
                         sets (reg cl) ++ movzbq (reg cl) rcx ++
-                        movq (reg rcx) (reg rax)
+                        movq (reg rcx) (ind ~ofs:8 rax)
                 | Infeg -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
                         setns (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (reg rax)
+                        movq (reg rcx) (ind ~ofs:8 rax)
                 | Sup -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
                         sets (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (reg rax)
+                        movq (reg rcx) (ind ~ofs:8 rax)
                 | Supeg -> 
                         cmpq (reg r13) (ind ~ofs:8 rax) ++ 
                         setns (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (reg rax)
+                        movq (reg rcx) (ind ~ofs:8 rax)
                 | Add -> addq (reg r13) (ind ~ofs:8 rax)
                 | Sub -> subq (reg r13) (ind ~ofs:8 rax)
                 | Mul -> imulq (ind ~ofs:8 rax) (reg r13) ++ movq (reg r13) (ind ~ofs:8 rax)
@@ -227,7 +254,8 @@ let rec compile_expr env e = match e.e with
         label ("L"^s1) ++
             compile_expr env e1 ++
             popq (rax) ++
-            cmpq (imm 0) (ind ~ofs:8 rax) ++
+            movq (ind ~ofs:8 rax) (reg rbx) ++
+            cmpq (imm 0) (reg rbx) ++
             je ("L"^s2) ++
             compile_expr env e2 ++
             jmp ("L"^s1) ++
@@ -238,13 +266,13 @@ let rec compile_expr env e = match e.e with
     
     | Eprint e when e.te.t = Typ ("Int", {at= []; lat= l_empty}) ->
         compile_expr env e ++
-            popq (rdi) ++
-            call "print_int" (* ici e est un entier *)
+            call "print_int" ++ (* ici e est un entier *)
+            addq (imm 8) (reg rsp)
     
     | Eprint e -> (* c'est forcément une string si on a survécu au typage *)
         compile_expr env e ++
-            popq (rdi) ++
-            call "print_string" (* ici e est une string *)
+            call "print_string" ++ (* ici e est une string *)
+            addq (imm 8) (reg rsp)
     
     | Ebloc b ->
         List.fold_left (fun code bl -> code ++ (compile_bl env bl)) nop b.b
@@ -264,11 +292,14 @@ and compile_methode m c =
     let s = ident_of_m m and lp = param_of_m m and e = exp_of_m m and k = ref (-1) (* ou peut être 0 *) in
     let env, taille = alloc_methode m in
     label ("M_"^c^"_"^s) ++
+        pushq (reg rbp) ++ (* il faut garder en mémoire rbp pour le restaurer *)
         movq (reg rsp) (reg rbp) ++
-        subq (imm (8*taille)) (reg rsp) ++ (* on crée le tableau d'activation *)
+        subq (imm (-8*taille)) (reg rsp) ++ (* on crée le tableau d'activation qui commence en rsp et se finit en rsp-8(taille-1) *)
+        
         compile_expr (List.fold_left (fun e p -> k:=!k +1; Emap.add p !k e) env (List.map (fun p -> let (id,_) = p.p in id) lp)) e ++
+        
         movq (reg rbp) (reg rsp) ++ (* on supprime les variables allouées *)
-        addq (imm (8*(List.length lp))) (reg rsp) ++ (* on supprime les paramètres *)
+        popq (rbp) ++ (* on restaure rbp *)
         ret
     
     
@@ -342,6 +373,7 @@ il y a des paramètres et des variables *)
 
 let compile_methodes_classe cl =
     let c = ident_of_class cl in
+    thisref:= c;
     List.fold_left (fun code d -> code ++ (match d.d with
                                                 | Dvar _ -> nop
                                                 | Dmethode m -> compile_methode m c)) nop (dec_of_class cl)
@@ -383,40 +415,73 @@ let comp fichier =
         (* le constructeur de Main sert à stocker les variables définies dans Main avant Main_main *)
         codeclasses ++ codemethodes ++
     (* on s'occupe des classes prédéfinies *)
-    (* label "C_Nothing" ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Nothing") (ind (r12)) ++ ret ++
+    label "C_Nothing" ++
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
+        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Nothing") (ind (r12)) ++ 
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret ++
     label "C_Null" ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Null") (ind (r12)) ++ ret ++ *)
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
+        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Null") (ind (r12)) ++
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret ++
     label "C_String" ++
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
         movq (imm 16) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_String") (ind (r12)) ++
-        addq (imm 8) (reg r12) ++ popq (rbx) ++ movq (reg rbx) (ind (r12)) ++ ret ++
-    (* label "C_AnyRef" ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_AnyRef") (ind (r12)) ++ ret ++
+        movq (ind ~ofs:16 rbp) (reg rbx) ++ movq (reg rbx) (ind ~ofs:8 r12) ++
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret ++
+    label "C_AnyRef" ++
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
+        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_AnyRef") (ind (r12)) ++
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret ++
     label "C_Any" ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Any") (ind (r12)) ++ ret ++
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
+        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Any") (ind (r12)) ++ 
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret ++
     label "C_Boolean" ++
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
         movq (imm 16) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Boolean") (ind (r12)) ++
-        addq (imm 8) (reg r12) ++ popq (rbx) ++ movq (reg rbx) (ind (r12)) ++ ret ++ *)
+        movq (ind ~ofs:16 rbp) (reg rbx) ++ movq (reg rbx) (ind ~ofs:8 r12) ++
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret ++
     label "C_Int" ++
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
         movq (imm 16) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Int") (ind (r12)) ++
-        popq (rbx) ++ movq (reg rbx) (ind ~ofs:8 r12) ++ ret ++
-    (* label "C_Unit" ++
+        movq (ind ~ofs:16 rbp) (reg rbx) ++ movq (reg rbx) (ind ~ofs:8 r12) ++
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret ++
+    label "C_Unit" ++
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
         movq (imm 16) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Unit") (ind (r12)) ++
-        addq (imm 8) (reg r12) ++ popq (rbx) ++ movq (reg rbx) (ind (r12)) ++ ret ++
+        movq (ind ~ofs:16 rbp) (reg rbx) ++ movq (reg rbx) (ind ~ofs:8 r12) ++
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret ++
     label "C_AnyVal" ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_AnyVal") (ind (r12)) ++ ret ++ *)
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
+        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_AnyVal") (ind (r12)) ++ 
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret ++
     label "print_int" ++
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
+        movq (ind ~ofs:16 rbp) (reg rdi) ++
         movq (ind ~ofs:8 rdi) (reg rsi) ++
         movq (ilab ".Sprint_int") (reg rdi) ++
         movq (imm 0) (reg rax) ++
         call "printf" ++
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "print_string" ++
+        pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
+        movq (ind ~ofs:16 rbp) (reg rdi) ++
         movq (ind ~ofs:8 rdi) (reg rsi) ++
         movq (ilab ".Sprint_string") (reg rdi) ++
         movq (imm 0) (reg rax) ++
         call "printf" ++
-        ret;        
+        movq (reg rbp) (reg rsp) ++ popq (rbp) ++
+        ret; 
 	data =
 	label "D_Main" ++
         address ["D_Any"; "M_Main_main"] ++

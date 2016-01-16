@@ -12,19 +12,23 @@ C_Main:
 	movq $D_Main, 0(%r12)
 	ret
 M_Main_main:
+	pushq %rbp
 	movq %rsp, %rbp
 	subq $0, %rsp
 	pushq $0
 	call C_Boolean
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 	cmpq $0, 8(%rax)
 	je L4
 	pushq $1
 	call C_Int
+	addq $8, %rsp
 	pushq %rax
 	pushq $0
 	call C_Int
+	addq $8, %rsp
 	pushq %rax
 	popq %r14
 	popq %r13
@@ -36,6 +40,7 @@ M_Main_main:
 	pushq %r13
 	pushq $3
 	call C_Int
+	addq $8, %rsp
 	pushq %rax
 	popq %rbx
 	popq %rax
@@ -43,7 +48,7 @@ M_Main_main:
 	cmpq 8(%rax), %r13
 	sete %cl
 	movzbq %cl, %rcx
-	movq %rcx, %rax
+	movq %rcx, 8(%rax)
 	pushq %rax
 	popq %rax
 L4:
@@ -53,28 +58,33 @@ L4:
 	je L0
 	pushq $.S3
 	call C_String
+	addq $8, %rsp
 	pushq %rax
-	popq %rdi
 	call print_string
+	addq $8, %rsp
 	jmp L1
 L0:
 	pushq $.S2
 	call C_String
+	addq $8, %rsp
 	pushq %rax
-	popq %rdi
 	call print_string
+	addq $8, %rsp
 L1:
 	pushq $1
 	call C_Boolean
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 	cmpq $0, 8(%rax)
 	jne L9
 	pushq $1
 	call C_Int
+	addq $8, %rsp
 	pushq %rax
 	pushq $0
 	call C_Int
+	addq $8, %rsp
 	pushq %rax
 	popq %r14
 	popq %r13
@@ -86,6 +96,7 @@ L1:
 	pushq %r13
 	pushq $2
 	call C_Int
+	addq $8, %rsp
 	pushq %rax
 	popq %rbx
 	popq %rax
@@ -93,7 +104,7 @@ L1:
 	cmpq 8(%rax), %r13
 	sete %cl
 	movzbq %cl, %rcx
-	movq %rcx, %rax
+	movq %rcx, 8(%rax)
 	pushq %rax
 	popq %rax
 L9:
@@ -103,97 +114,141 @@ L9:
 	je L5
 	pushq $.S8
 	call C_String
+	addq $8, %rsp
 	pushq %rax
-	popq %rdi
 	call print_string
+	addq $8, %rsp
 	jmp L6
 L5:
 	pushq $.S7
 	call C_String
+	addq $8, %rsp
 	pushq %rax
-	popq %rdi
 	call print_string
+	addq $8, %rsp
 L6:
 	movq %rbp, %rsp
-	addq $8, %rsp
+	popq %rbp
 	ret
 C_Nothing:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_Nothing, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_Null:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_Null, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_String:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $16, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_String, 0(%r12)
-	addq $8, %r12
-	popq %rbx
-	movq %rbx, 0(%r12)
+	movq 16(%rbp), %rbx
+	movq %rbx, 8(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_AnyRef:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_AnyRef, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_Any:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_Any, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_Boolean:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $16, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_Boolean, 0(%r12)
-	addq $8, %r12
-	popq %rbx
-	movq %rbx, 0(%r12)
+	movq 16(%rbp), %rbx
+	movq %rbx, 8(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_Int:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $16, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_Int, 0(%r12)
-	addq $8, %r12
-	popq %rbx
-	movq %rbx, 0(%r12)
+	movq 16(%rbp), %rbx
+	movq %rbx, 8(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_Unit:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $16, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_Unit, 0(%r12)
-	addq $8, %r12
-	popq %rbx
-	movq %rbx, 0(%r12)
+	movq 16(%rbp), %rbx
+	movq %rbx, 8(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_AnyVal:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_AnyVal, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 print_int:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq 16(%rbp), %rdi
 	movq 8(%rdi), %rsi
 	movq $.Sprint_int, %rdi
 	movq $0, %rax
 	call printf
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 print_string:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq 16(%rbp), %rdi
 	movq 8(%rdi), %rsi
 	movq $.Sprint_string, %rdi
 	movq $0, %rax
 	call printf
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 .data
 D_Main:

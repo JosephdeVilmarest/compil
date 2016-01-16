@@ -71,8 +71,8 @@ and expr_sl =
   | Ereturn of expr
   | Eprint of expr
   | Ebloc of bloc
-and expr = {e: expr_sl; le:loc; te:typ}
-
+and expr = {e: expr_sl; le:loc; mutable te:typ}
+(** on a rendu le truc mutable pour modifier le type **)
 and bl_sl =
   | Bvar of var
   | Bexpr of expr

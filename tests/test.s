@@ -12,25 +12,140 @@ C_Main:
 	movq $D_Main, 0(%r12)
 	ret
 M_Main_main:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $8, %rsp
 	pushq $1
 	call C_Int
+	addq $8, %rsp
 	pushq %rax
-	popq %rdi
+	popq %rax
+	movq %rax, 0(%rbp)
+	pushq 0(%rbp)
 	call print_int
+	addq $8, %rsp
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_Nothing:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Nothing, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_Null:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Null, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_String:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_String, 0(%r12)
+	movq 16(%rbp), %rbx
+	movq %rbx, 8(%r12)
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_AnyRef:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_AnyRef, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_Any:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Any, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_Boolean:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Boolean, 0(%r12)
+	movq 16(%rbp), %rbx
+	movq %rbx, 8(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_Int:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $16, %rdi
 	call malloc
 	movq %rax, %r12
 	movq $D_Int, 0(%r12)
-	popq %rbx
+	movq 16(%rbp), %rbx
 	movq %rbx, 8(%r12)
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_Unit:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $16, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Unit, 0(%r12)
+	movq 16(%rbp), %rbx
+	movq %rbx, 8(%r12)
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_AnyVal:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_AnyVal, 0(%r12)
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 print_int:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq 16(%rbp), %rdi
 	movq 8(%rdi), %rsi
 	movq $.Sprint_int, %rdi
 	movq $0, %rax
 	call printf
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+print_string:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq 16(%rbp), %rdi
+	movq 8(%rdi), %rsi
+	movq $.Sprint_string, %rdi
+	movq $0, %rax
+	call printf
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 .data
 D_Main:
@@ -55,3 +170,5 @@ D_Unit:
 	.quad D_AnyVal
 .Sprint_int:
 	.string "%d"
+.Sprint_string:
+	.string "%s"

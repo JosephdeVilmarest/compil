@@ -1,5 +1,7 @@
+
 object Main {
   def main(args: Array[String]) {
-    print(1)
+    var k = 1;
+    while (k<=2) {k = k + 1; print("content")}
   }
 }

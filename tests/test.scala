@@ -1,5 +1,6 @@
+
 object Main {
   def main(args: Array[String]) {
-    print(1)
+    var expr1 = 1; print(expr1)
   }
 }

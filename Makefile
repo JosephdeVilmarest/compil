@@ -8,7 +8,7 @@ all: $(BIN)
 .PHONY: tests
 
 tests: $(BIN)
-	./ficexec.sh -3 ./pscala
+	./testC.sh -3 ./pscala
 
 $(BIN): $(CMO)
 	ocamlc $(FLAGS) -o $(BIN) $(CMO)

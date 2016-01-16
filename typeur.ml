@@ -126,12 +126,14 @@ let typ_of_dec_var dv = match dv.dv with
     | Var (_,t) -> t
     | Val (_,t) -> t
 
-(* on cherche le type d'une variable déclarée, 
-   donnée sous la forme ident, dans une dec list *)
-let rec cherche_dec id = function
-    | [] -> raise Not_found
-    | (Dvar v)::q when id_of_var v = id -> typ_of_var v
-    | d::q -> cherche_dec id q
+
+
+let rec cherche_dec id = function 
+    |[] -> raise Not_found
+    |dv::q when (match dv.dv with Var(s,t) -> s |Val(s,t) -> s) = id -> 
+                         (match dv.dv with Var(s,t) -> t |Val(s,t) -> t)
+    |d::q -> cherche_dec id q
+
 (* ici il faut que la variable soit mutable, 
    c'est pour l'affectation dans typ_expr *)
 exception Variable_immuable
@@ -167,7 +169,6 @@ let typ_of_typ_ret = function
 let rec tl_of_ptcl = function
 	| []-> []
 	| ptc::q -> (t_of_ptc ptc)::(tl_of_ptcl q)
-
 
 
 
@@ -287,7 +288,8 @@ let ltparam cl =
 		| (a,b)::q -> b :: aux q
 	in aux (List.map (fun p -> p.p) l)
 
-let rec type_expr exp gamma tr = match exp.e with
+let rec type_expr exp gamma tr = 
+    let ttyp = match exp.e with
     | Eentier _ -> {t= Typ ("Int", {at= []; lat= l_empty}); lt= exp.le}
     | Echaine _ -> {t= Typ ("String", {at= []; lat= l_empty}); lt= exp.le}    
     | Ebool _ -> {t= Typ ("Boolean", {at= []; lat= l_empty}); lt= exp.le}    
@@ -302,15 +304,12 @@ let rec type_expr exp gamma tr = match exp.e with
     | Eacc {a= Aid id; la= _} -> 
            (try cherche_dec_var id gamma.dec
             with Not_found -> 
-                    let Typ(c,_) = (cherche_dec_var "this" gamma.dec).t in
-                    let ld = dec_of_class (Cmap.find c gamma.classes).classe in
-                    cherche_dec id (List.map (fun d -> d.d) ld))
-    
+                    cherche_dec id (gamma.dec))
     | Eacc {a= Aexpid (e,id); la= loc} -> 
             let Typ (c,at) = (type_expr e gamma tr).t in
             let (_,lptc,_,_,_,ld) = ((Cmap.find c gamma.classes).classe).c in
             let sigma = sigma_of_listes lptc at.at in
-           (try let t = cherche_dec id (List.map (fun d -> d.d) ld) in 
+           (try let t = cherche_dec id gamma.dec in 
                 substitue sigma t
             with Not_found -> raise
                                    (Typeur_error ("variable non définie",loc)))
@@ -385,19 +384,22 @@ let rec type_expr exp gamma tr = match exp.e with
                  (Typeur_error ("pas le bon nombre d'expressions", exp.le))
             in aux le (List.map (fun (s,t) -> t) (List.map (fun p -> p.p) lp));
             if !flag then substitue sigma (substitue sigma_prime t)
+(** ici se trouve le probleme qui me fait bien chier **)
             else raise (Typeur_error ("un des types est mal formé", exp.le))
      
     | Enewidargexp (c,at,le) when (est_bf {t= Typ (c,at); lt= exp.le} gamma) ->
 	        let cl = (Cmap.find c gamma.classes).classe in
 		    let ltp = ltparam cl in  
-            let rec aux lar l = match lar, l with
+            let lptc = ptc_of_class cl in 
+            let sigma = sigma_of_listes lptc (at.at) in
+            let rec aux ss lar l = match lar, l with
                 | [], [] -> true
-                | t::p, e::q -> (est_sous_type (type_expr e gamma tr) t 
-                                                              gamma)&&(aux p q)
+                | t::p, e::q -> (est_sous_type (type_expr e gamma tr) (substitue ss t) 
+                                                              gamma)&&(aux ss p q)
                 | _ -> raise 
                      (Typeur_error ("pas le bon nombre d'expressions", exp.le))
             in
-            if aux ltp le then {t= Typ (c,at); lt= exp.le}
+            if aux sigma ltp le then {t= Typ (c,at); lt= exp.le}
             else raise (Typeur_error 
                    ("le type de l'expr ne correspond pas à la classe", exp.le))
     | Enewidargexp _ -> raise (Typeur_error ("le type est mal formé", exp.le)) 
@@ -484,8 +486,8 @@ let rec type_expr exp gamma tr = match exp.e with
     | Eprint e when (type_expr e gamma tr).t = 
                         Typ ("Int",{at= []; lat= l_empty}) -> 
                 {t= Typ("Unit",{at= []; lat= l_empty}); lt= exp.le}
-    | Eprint e -> raise (Typeur_error 
-                  ("Eprint attend une expression de type Int ou String", e.le))
+    | Eprint e -> let str =  match (type_expr e gamma tr).t with Typ(aaa,bbb) -> aaa in raise (Typeur_error (str, e.le)) (**raise (Typeur_error 
+                  ("Eprint attend une expression de type Int ou String", e.le)) **)
     
     | Ebloc {b=[]; lb=lb} -> 
             {t= Typ("Unit",{at= []; lat= l_empty}); lt= exp.le}
@@ -539,7 +541,7 @@ let rec type_expr exp gamma tr = match exp.e with
                 type_expr {e= Ebloc {b=l; lb=lb}; le=lb; 
               te={t=Typ ("Unit", {at= []; lat= l_empty}); lt=l_empty}} gamma tr
     | Ebloc b  -> raise (Typeur_error ("problème dans Ebloc", b.lb))
-
+in exp.te <- ttyp ;ttyp;;
 
 
 (** Typage d'une classe **)
@@ -971,14 +973,18 @@ let cree_array () = {c= ("Array" , [{ptc= Ptc({pt= Ptid("X"); lpt= l_empty});
 let cree_main classe_main = {c= ("Main", [],[],{t= Typ("AnyRef",{at= []; 
                      lat= l_empty}); lt= l_empty},[],classe_main); lc= l_empty}
 
+
+let est_present_param_important = function
+    |[] -> false
+    |p::q -> let (s,t) = p.p in (match t with |{t= Typ("Array",
+		    {at= [{t= Typ("String",_); lt= _}]; lat= _}); lt= _} -> true |_  -> false)
+  
 let vm classe_main = 
 	let rec aux = function
 		| [] -> false 
-		| Dmethode({m= Mdef("main", [],[{p= ("args",{t= Typ("Array",
-		    {at= [{t= Typ("String",_); lt= _}]; lat= _}); lt= _}); lp= _}], 
-		        {t= Typ("Unit",_); lt= _}, (****) _);
-		                                                             lm= _})::q
-            -> true
+		| Dmethode({m= Mdef("main", [],lp, 
+		        {t= Typ("Unit",_); lt= _}, _);lm= _})::q
+            -> est_present_param_important lp
 		| t::q -> aux q 
 	in aux (List.map (fun d -> d.d) classe_main.cM)
 
