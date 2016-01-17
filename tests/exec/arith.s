@@ -42,12 +42,20 @@ M_Main_main:
 	pushq %rax
 	call print_int
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $.S0
 	call C_String
 	addq $8, %rsp
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $2
 	call C_Int
 	addq $8, %rsp
@@ -67,12 +75,20 @@ M_Main_main:
 	pushq %rax
 	call print_int
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $.S1
 	call C_String
 	addq $8, %rsp
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $2
 	call C_Int
 	addq $8, %rsp
@@ -108,12 +124,20 @@ M_Main_main:
 	pushq %rax
 	call print_int
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $.S2
 	call C_String
 	addq $8, %rsp
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $7
 	call C_Int
 	addq $8, %rsp
@@ -144,12 +168,20 @@ M_Main_main:
 	pushq %r13
 	call print_int
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $.S3
 	call C_String
 	addq $8, %rsp
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $2
 	call C_Int
 	addq $8, %rsp
@@ -182,12 +214,20 @@ M_Main_main:
 	pushq %rax
 	call print_int
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $.S4
 	call C_String
 	addq $8, %rsp
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret

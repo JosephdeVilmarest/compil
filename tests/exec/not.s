@@ -34,12 +34,20 @@ L0:
 L1:
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $.S4
 	call C_String
 	addq $8, %rsp
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret

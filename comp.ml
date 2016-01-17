@@ -73,19 +73,23 @@ let rec compile_expr env e = match e.e with
             pushq (reg rax)
     
     | Ethis ->
-        nop
+            nop
      
     | Enull ->
             pushq (imm 0) ++ 
-            call "C_Int" ++ 
+            call "C_Null" ++ 
             addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     
     | Epar e -> compile_expr env e
     
     | Eacc {a= Aid id; la=_} ->
-        let o = 8*Emap.find id env in
+        (try let o = 8*Emap.find id env in
             pushq (ind ~ofs:o rbp)
+        with Not_found -> 
+            let o = 8*(Ocmap.find ("this", id) !oc) in
+            nop)
+            
     | Eacc {a= Aexpid (e, id); la=_} ->
         (* il faut accéder au champ id de l'objet e, donc on regarde la classe de e et on utilise oc *)
         let Typ(c,_) = e.te.t in
@@ -285,12 +289,20 @@ let rec compile_expr env e = match e.e with
     | Eprint e when e.te.t = Typ ("Int", {at= []; lat= l_empty}) -> (* on ne remet rien sur la pile après avoir affiché *)
         compile_expr env e ++
             call "print_int" ++ (* ici e est un entier *)
-            addq (imm 8) (reg rsp)
+            addq (imm 8) (reg rsp) ++
+            pushq (imm 0) ++
+            call "C_Unit" ++
+            addq (imm 8) (reg rsp) ++
+            pushq (reg rax)
     
     | Eprint e -> (* c'est forcément une string si on a survécu au typage *)
         compile_expr env e ++
             call "print_string" ++ (* ici e est une string *)
-            addq (imm 8) (reg rsp)
+            addq (imm 8) (reg rsp) ++
+            pushq (imm 0) ++
+            call "C_Unit" ++
+            addq (imm 8) (reg rsp) ++
+            pushq (reg rax)
     
     | Ebloc b ->
         List.fold_left (fun code bl -> code ++ (compile_bl env bl)) nop b.b
@@ -332,10 +344,10 @@ let aux_param p c c_extends numc =
     if Ocmap.exists (fun (c, x) k -> x = s) !oc then ()
     else (oc:= Ocmap.add (c, s) !numc !oc; numc:= !numc+1)
 
-let rec aux_modifie x y = function
-    | [] -> failwith "override pas définie dans la classe héritée"
-    | t::q when t = x -> y::q
-    | t::q -> t::(aux_modifie x y q)
+let rec aux_modifie y l k = match l, k with
+    | [], _ -> failwith "override pas définie dans la classe héritée"
+    | t::q, k when k = 0 -> y::q
+    | t::q, k -> t::(aux_modifie y q (k-1))
 
 let aux_decl d c c_extends l numc numm = match d.d with
     | Dvar v ->
@@ -347,7 +359,7 @@ let aux_decl d c c_extends l numc numm = match d.d with
         l:= List.append !l ["M_"^c^"_"^s];
         om:= Ommap.add (c, s) !numm !om; numm:= !numm+1
     | Dmethode {m=Moverride (s,_,_,_,_); lm=_} -> (* on sait ici que s est dans extends, on ne change pas son offset *)
-        l:= aux_modifie ("M_"^c_extends^"_"^s) ("M_"^c^"_"^s) !l
+        l:= aux_modifie ("M_"^c^"_"^s) !l (Ommap.find (c,s) !om)
 
 let comp_classe cl =
     let (c,_,lp,t,_,ld) = cl.c in let Typ (c_extends,_) = t.t in

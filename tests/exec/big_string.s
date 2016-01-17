@@ -25,7 +25,7 @@ M_Main_main:
 	movq %rax, 0(%rbp)
 	pushq 0(%rbp)
 	pushq $0
-	call C_Int
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	popq %rbx
@@ -47,6 +47,10 @@ M_Main_main:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L2
 L1:
 	pushq $0

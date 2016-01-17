@@ -28,11 +28,11 @@ M_Main_main:
 	popq %rax
 	movq %rax, 0(%rbp)
 	pushq $0
-	call C_Int
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	pushq $0
-	call C_Int
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	popq %rbx
@@ -54,6 +54,10 @@ M_Main_main:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L1
 L0:
 	pushq $0
@@ -62,7 +66,7 @@ L0:
 	pushq %rax
 L1:
 	pushq $0
-	call C_Int
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	pushq 0(%rbp)
@@ -85,6 +89,10 @@ L1:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L4
 L3:
 	pushq $0
@@ -93,7 +101,7 @@ L3:
 	pushq %rax
 L4:
 	pushq $0
-	call C_Int
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	pushq $.S9
@@ -119,6 +127,10 @@ L4:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L7
 L6:
 	pushq $0
@@ -127,7 +139,7 @@ L6:
 	pushq %rax
 L7:
 	pushq $0
-	call C_Int
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
@@ -138,7 +150,7 @@ L7:
 	pushq %rax
 	pushq 0(%rbp)
 	pushq $0
-	call C_Int
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	popq %rbx
@@ -160,6 +172,10 @@ L7:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L11
 L10:
 	pushq $0

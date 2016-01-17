@@ -58,7 +58,7 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	pushq $0
-	call C_Int
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	popq %rbx
@@ -83,6 +83,10 @@ L3:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L1
 L0:
 	pushq $0

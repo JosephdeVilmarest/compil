@@ -23,6 +23,10 @@ M_Main_main:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret

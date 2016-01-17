@@ -25,6 +25,10 @@ C_A:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	popq %rbx
 	movq %rbx, 0(%r12)
 	ret

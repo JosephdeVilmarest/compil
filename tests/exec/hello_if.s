@@ -30,6 +30,10 @@ M_Main_main:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L1
 L0:
 	pushq $0
@@ -50,6 +54,10 @@ L1:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L4
 L3:
 	pushq $0
@@ -70,6 +78,10 @@ L4:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L7
 L6:
 	pushq $0

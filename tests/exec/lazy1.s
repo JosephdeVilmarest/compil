@@ -66,6 +66,10 @@ L4:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L1
 L0:
 	pushq $.S2
@@ -74,6 +78,10 @@ L0:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 L1:
 	pushq $1
 	call C_Boolean
@@ -124,6 +132,10 @@ L9:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L6
 L5:
 	pushq $.S7
@@ -132,6 +144,10 @@ L5:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 L6:
 	movq %rbp, %rsp
 	popq %rbp

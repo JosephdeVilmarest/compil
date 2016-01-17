@@ -76,6 +76,10 @@ L2:
 	pushq %r13
 	call print_int
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	jmp L5
 L4:
 	pushq $.S6
@@ -84,6 +88,10 @@ L4:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 L5:
 L3:
 	jmp L1

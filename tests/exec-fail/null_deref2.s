@@ -24,7 +24,7 @@ M_Main_main:
 	movq %rsp, %rbp
 	subq $8, %rsp
 	pushq $0
-	call C_Int
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
