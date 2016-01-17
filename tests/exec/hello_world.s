@@ -10,10 +10,13 @@ main:
 C_Main:
 	movq $8, %rdi
 	call malloc
+	pushq %r15
+	movq %rax, %r15
 	pushq %rax
 	movq %rax, %r12
 	movq $D_Main, 0(%r12)
 	popq %rax
+	popq %r15
 	ret
 M_Main_main:
 	pushq %rbp

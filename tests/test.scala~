@@ -7,6 +7,6 @@ class B extends A {
 object Main {
   def main(args: Array[String]) {
     var b = new B();
-    print(b.x); print("\n")
+    print(b.x)
   }
 }

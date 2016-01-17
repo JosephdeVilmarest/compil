@@ -431,8 +431,10 @@ il y a des paramètres et des variables *)
     label ("C_"^c) ++
         movq (imm (8*(nbc+1))) (reg rdi) ++
         call "malloc" ++
-        pushq (reg rax) ++ (* on empile rax pour le sauvegarder et le redonner à la fin *)
-        (*movq (reg rax) (reg r15) ++ *)
+        (* on empile rax pour le sauvegarder et le redonner à la fin *)
+        pushq (reg r15) ++
+        movq (reg rax) (reg r15) ++
+        pushq (reg rax) ++
         movq (reg rax) (reg r12) ++ (* on met rax dans r12 que l'on augmentera petit à petit *)
         movq (ilab ("D_"^c)) (ind (r12)) ++
         List.fold_left (fun code id -> 
@@ -451,6 +453,7 @@ il y a des paramètres et des variables *)
                                 movq (reg rbx) (ind (r12))
                                 ) nop lid ++
         popq (rax) ++
+        popq (r15) ++
         ret
 
 let compile_methodes_classe cl =
