@@ -32,6 +32,13 @@ module Emap = Map.Make(String) (* donne l'offset par rapport à rsp de l'objet a
 (* allocation: au début d'une méthode on alloue l'espace nécessaire et on attribue une adresse à chaque variable locale qui intervient *)
 let rec alloc_expr (env, k) e = match e.e with
     | Epar e -> alloc_expr (env, k) e
+    | Eaccexp (a,e) -> alloc_expr (env, k) e
+    | Eaccargexp (_,_,le) -> List.fold_left alloc_expr (env,k) le
+    | Enewidargexp (_,_,le) -> List.fold_left alloc_expr (env,k) le
+    | Eif (e,e1,e2) -> alloc_expr (alloc_expr (alloc_expr (env,k) e) e1) e2
+    | Ewhile (e1,e2) -> alloc_expr (alloc_expr ((env,k)) e1) e2
+    | Ereturn e -> alloc_expr (env,k) e
+    | Eprint e -> alloc_expr (env,k) e
     | Ebloc b -> alloc_bloc (env, k) b
     | _ -> (env, k)
 
@@ -393,6 +400,11 @@ let rec cherche_expr id cl = function
     | {d=Dvar v; ld=_}::q when id_of_var v = id -> exp_of_var v
     | x::q -> cherche_expr id cl q
 
+let rec aux_position id = function
+    | [] -> failwith "paramètre non trouvé"
+    | x::q when x = id -> 1
+    | x::q -> 1 + aux_position id q
+
 let constr_of_class cl =
 (* on a un certains nombre de champs de cl avec leur offset dans !oc.
 il y a des paramètres et des variables *)
@@ -409,8 +421,11 @@ il y a des paramètres et des variables *)
                                 code ++
                                 addq (imm 8) (reg r12) ++
                                 (match List.mem id (List.map (fun p -> let (id,_) = p.p in id) lp) with
-                                    | true -> nop
-                                    | false -> let e = cherche_expr id cl ld in
+                                    | true ->
+                                        let o = 8*(aux_position id (List.map (fun p -> let (id,_) = p.p in id) lp)) in
+                                        pushq (ind ~ofs:o rsp) (* ici rsp pointe sur l'adresse de retour*)
+                                    | false -> 
+                                        let e = cherche_expr id cl ld in
                                         compile_expr Emap.empty e) ++
                                 popq (rbx) ++
                                 movq (reg rbx) (ind (r12))
