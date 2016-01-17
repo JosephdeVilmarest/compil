@@ -33,28 +33,22 @@ M_Main_main:
 	call C_A
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq $.S0
 	call C_String
 	addq $8, %rsp
 	pushq %rax
 	movq $D_A, %rbx
+	pushq -8(%rbp)
+	popq %r15
 	call *8(%rbx)
 	addq $8, %rsp
 	pushq %rax
 	movq $D_A, %rbx
+	pushq -8(%rbp)
+	popq %r15
 	call *16(%rbx)
 	addq $0, %rsp
-	pushq %rax
-	call print_string
-	addq $8, %rsp
-	pushq $0
-	call C_Unit
-	addq $8, %rsp
-	pushq %rax
-	pushq $.S1
-	call C_String
-	addq $8, %rsp
 	pushq %rax
 	call print_string
 	addq $8, %rsp
@@ -236,5 +230,3 @@ D_Unit:
 	.string "%s"
 .S0:
 	.string "hello"
-.S1:
-	.string ", world!\n"

@@ -26,14 +26,14 @@ M_Main_main:
 	call C_Fact
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq $5
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Fact, %rbx
-	pushq 0(%rbp)
-	pushq %r15
+	pushq -8(%rbp)
+	popq %r15
 	call *8(%rbx)
 	addq $8, %rsp
 	pushq %rax
@@ -58,8 +58,8 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Fact, %rbx
-	pushq 0(%rbp)
-	pushq %r15
+	pushq -8(%rbp)
+	popq %r15
 	call *8(%rbx)
 	addq $8, %rsp
 	pushq %rax

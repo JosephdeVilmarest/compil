@@ -26,7 +26,7 @@ M_Main_main:
 	call C_Power
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq $4
 	call C_Int
 	addq $8, %rsp
@@ -36,8 +36,8 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Power, %rbx
-	pushq 0(%rbp)
-	pushq %r15
+	pushq -8(%rbp)
+	popq %r15
 	call *8(%rbx)
 	addq $16, %rsp
 	pushq %rax
@@ -66,8 +66,8 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Power, %rbx
-	pushq 0(%rbp)
-	pushq %r15
+	pushq -8(%rbp)
+	popq %r15
 	call *8(%rbx)
 	addq $16, %rsp
 	pushq %rax
@@ -99,15 +99,15 @@ M_Power_power:
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq 16(%rbp)
 	popq %rax
-	movq %rax, -8(%rbp)
+	movq %rax, -16(%rbp)
 	pushq 24(%rbp)
 	popq %rax
-	movq %rax, -16(%rbp)
+	movq %rax, -24(%rbp)
 L2:
-	pushq -16(%rbp)
+	pushq -24(%rbp)
 	pushq $0
 	call C_Int
 	addq $8, %rsp
@@ -126,7 +126,7 @@ L2:
 	movq 8(%rax), %rbx
 	cmpq $0, %rbx
 	je L3
-	pushq -16(%rbp)
+	pushq -24(%rbp)
 	pushq $2
 	call C_Int
 	addq $8, %rsp
@@ -156,29 +156,8 @@ L2:
 	popq %rax
 	cmpq $0, 8(%rax)
 	je L4
-	pushq 0(%rbp)
 	pushq -8(%rbp)
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	imulq 8(%rax), %r13
-	movq %r13, 8(%rax)
-	pushq %rax
-	popq %rax
-	movq %rax, 0(%rbp)
-	pushq $0
-	call C_Unit
-	addq $8, %rsp
-	pushq %rax
-	jmp L5
-L4:
-	pushq $0
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-L5:
-	pushq -8(%rbp)
-	pushq -8(%rbp)
+	pushq -16(%rbp)
 	popq %rbx
 	popq %rax
 	movq 8(%rbx), %r13
@@ -191,7 +170,28 @@ L5:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
+	jmp L5
+L4:
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+L5:
 	pushq -16(%rbp)
+	pushq -16(%rbp)
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	imulq 8(%rax), %r13
+	movq %r13, 8(%rax)
+	pushq %rax
+	popq %rax
+	movq %rax, -16(%rbp)
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq -24(%rbp)
 	pushq $2
 	call C_Int
 	addq $8, %rsp
@@ -205,14 +205,14 @@ L5:
 	movq %rax, 8(%r13)
 	pushq %r13
 	popq %rax
-	movq %rax, -16(%rbp)
+	movq %rax, -24(%rbp)
 	pushq $0
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
 	jmp L2
 L3:
-	pushq 0(%rbp)
+	pushq -8(%rbp)
 	movq %rbp, %rsp
 	popq %rbp
 	ret

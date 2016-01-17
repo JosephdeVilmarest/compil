@@ -39,7 +39,7 @@ M_Main_main:
 	call C_A
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	movq %rbp, %rsp
 	popq %rbp
 	ret

@@ -33,23 +33,23 @@ M_Main_main:
 	call C_A
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
-	movq $D_A, %rbx
-	pushq 0(%rbp)
-	pushq %r15
-	call *8(%rbx)
-	addq $0, %rsp
-	pushq %rax
-	popq %rax
 	movq %rax, -8(%rbp)
 	movq $D_A, %rbx
 	pushq -8(%rbp)
-	pushq %r15
+	popq %r15
 	call *8(%rbx)
 	addq $0, %rsp
 	pushq %rax
 	popq %rax
 	movq %rax, -16(%rbp)
+	movq $D_A, %rbx
+	pushq -16(%rbp)
+	popq %r15
+	call *8(%rbx)
+	addq $0, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, -24(%rbp)
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -57,8 +57,7 @@ M_A_m:
 	pushq %rbp
 	movq %rsp, %rbp
 	subq $0, %rsp
-	popq %rax
-	pushq 8(%rax)
+	pushq 8(%r15)
 	pushq $1
 	call C_Int
 	addq $8, %rsp
@@ -68,15 +67,13 @@ M_A_m:
 	movq 8(%rbx), %r13
 	addq %r13, 8(%rax)
 	pushq %rax
-	popq %rbx
 	popq %rax
-	movq %rbx, 8(%rax)
+	movq %rax, 8(%r15)
 	pushq $0
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	popq %rax
-	pushq 8(%rax)
+	pushq 8(%r15)
 	call print_int
 	addq $8, %rsp
 	pushq $0

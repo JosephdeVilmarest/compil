@@ -42,7 +42,7 @@ L1:
 L0:
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq $1
 	call C_Boolean
 	addq $8, %rsp
@@ -68,7 +68,7 @@ L3:
 L2:
 	pushq %rax
 	popq %rax
-	movq %rax, -8(%rbp)
+	movq %rax, -16(%rbp)
 	pushq $1
 	call C_Boolean
 	addq $8, %rsp
@@ -88,16 +88,16 @@ L2:
 L4:
 	pushq %rax
 	popq %rax
-	movq %rax, -16(%rbp)
-	pushq 0(%rbp)
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L5
+	movq %rax, -24(%rbp)
 	pushq -8(%rbp)
 	popq %rax
 	cmpq $0, 8(%rax)
-	jne L6
+	je L5
 	pushq -16(%rbp)
+	popq %rax
+	cmpq $0, 8(%rax)
+	jne L6
+	pushq -24(%rbp)
 	popq %rax
 L6:
 	pushq %rax
@@ -113,8 +113,8 @@ L5:
 	addq $1, 8(%rax)
 	pushq %rax
 	popq %rax
-	movq %rax, -24(%rbp)
-	pushq -24(%rbp)
+	movq %rax, -32(%rbp)
+	pushq -32(%rbp)
 	popq %rax
 	cmpq $0, 8(%rax)
 	je L7

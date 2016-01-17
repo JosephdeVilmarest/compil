@@ -26,14 +26,14 @@ M_Main_main:
 	call C_Fact
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq $5
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Fact, %rbx
-	pushq 0(%rbp)
-	pushq %r15
+	pushq -8(%rbp)
+	popq %r15
 	call *8(%rbx)
 	addq $8, %rsp
 	pushq %rax
@@ -58,8 +58,8 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Fact, %rbx
-	pushq 0(%rbp)
-	pushq %r15
+	pushq -8(%rbp)
+	popq %r15
 	call *8(%rbx)
 	addq $8, %rsp
 	pushq %rax
@@ -88,15 +88,15 @@ M_Fact_fact:
 	subq $16, %rsp
 	pushq 16(%rbp)
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq $1
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
-	movq %rax, -8(%rbp)
+	movq %rax, -16(%rbp)
 L2:
-	pushq 0(%rbp)
+	pushq -8(%rbp)
 	pushq $1
 	call C_Int
 	addq $8, %rsp
@@ -115,8 +115,8 @@ L2:
 	movq 8(%rax), %rbx
 	cmpq $0, %rbx
 	je L3
+	pushq -16(%rbp)
 	pushq -8(%rbp)
-	pushq 0(%rbp)
 	popq %rbx
 	popq %rax
 	movq 8(%rbx), %r13
@@ -124,12 +124,12 @@ L2:
 	movq %r13, 8(%rax)
 	pushq %rax
 	popq %rax
-	movq %rax, -8(%rbp)
+	movq %rax, -16(%rbp)
 	pushq $0
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	pushq 0(%rbp)
+	pushq -8(%rbp)
 	pushq $1
 	call C_Int
 	addq $8, %rsp
@@ -140,14 +140,14 @@ L2:
 	subq %r13, 8(%rax)
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq $0
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
 	jmp L2
 L3:
-	pushq -8(%rbp)
+	pushq -16(%rbp)
 	movq %rbp, %rsp
 	popq %rbp
 	ret

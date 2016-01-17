@@ -70,57 +70,14 @@ M_Main_main:
 	call C_A
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	call C_B
 	pushq %rax
 	popq %rax
-	movq %rax, -8(%rbp)
-	movq $D_A, %rbx
-	pushq 0(%rbp)
-	pushq %r15
-	call *8(%rbx)
-	addq $0, %rsp
-	pushq %rax
-	movq $D_Main, %rbx
-	call *8(%rbx)
-	addq $8, %rsp
-	pushq %rax
-	movq $D_A, %rbx
-	pushq 0(%rbp)
-	pushq %r15
-	call *16(%rbx)
-	addq $0, %rsp
-	pushq %rax
-	movq $D_Main, %rbx
-	call *8(%rbx)
-	addq $8, %rsp
-	pushq %rax
-	movq $D_B, %rbx
-	pushq -8(%rbp)
-	pushq %r15
-	call *8(%rbx)
-	addq $0, %rsp
-	pushq %rax
-	movq $D_Main, %rbx
-	call *8(%rbx)
-	addq $8, %rsp
-	pushq %rax
-	movq $D_B, %rbx
-	pushq -8(%rbp)
-	pushq %r15
-	call *16(%rbx)
-	addq $0, %rsp
-	pushq %rax
-	movq $D_Main, %rbx
-	call *8(%rbx)
-	addq $8, %rsp
-	pushq %rax
-	pushq -8(%rbp)
-	popq %rax
 	movq %rax, -16(%rbp)
 	movq $D_A, %rbx
-	pushq -16(%rbp)
-	pushq %r15
+	pushq -8(%rbp)
+	popq %r15
 	call *8(%rbx)
 	addq $0, %rsp
 	pushq %rax
@@ -129,8 +86,51 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_A, %rbx
+	pushq -8(%rbp)
+	popq %r15
+	call *16(%rbx)
+	addq $0, %rsp
+	pushq %rax
+	movq $D_Main, %rbx
+	call *8(%rbx)
+	addq $8, %rsp
+	pushq %rax
+	movq $D_B, %rbx
 	pushq -16(%rbp)
-	pushq %r15
+	popq %r15
+	call *8(%rbx)
+	addq $0, %rsp
+	pushq %rax
+	movq $D_Main, %rbx
+	call *8(%rbx)
+	addq $8, %rsp
+	pushq %rax
+	movq $D_B, %rbx
+	pushq -16(%rbp)
+	popq %r15
+	call *16(%rbx)
+	addq $0, %rsp
+	pushq %rax
+	movq $D_Main, %rbx
+	call *8(%rbx)
+	addq $8, %rsp
+	pushq %rax
+	pushq -16(%rbp)
+	popq %rax
+	movq %rax, -24(%rbp)
+	movq $D_A, %rbx
+	pushq -24(%rbp)
+	popq %r15
+	call *8(%rbx)
+	addq $0, %rsp
+	pushq %rax
+	movq $D_Main, %rbx
+	call *8(%rbx)
+	addq $8, %rsp
+	pushq %rax
+	movq $D_A, %rbx
+	pushq -24(%rbp)
+	popq %r15
 	call *16(%rbx)
 	addq $0, %rsp
 	pushq %rax

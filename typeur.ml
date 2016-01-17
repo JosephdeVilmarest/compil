@@ -1317,3 +1317,4 @@ let est_bien_type fichier =
 	let t = vm m in if t then () 
 		else raise
 		       (Typeur_error ("la methode main n'est pas bien definie", m.lcM))
+

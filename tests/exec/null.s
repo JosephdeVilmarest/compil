@@ -26,7 +26,7 @@ M_Main_main:
 	call C_A
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq $0
 	call C_Null
 	addq $8, %rsp
@@ -69,7 +69,7 @@ L1:
 	call C_Null
 	addq $8, %rsp
 	pushq %rax
-	pushq 0(%rbp)
+	pushq -8(%rbp)
 	popq %rbx
 	popq %rax
 	movq 8(%rbx), %r13
@@ -143,12 +143,12 @@ L7:
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	pushq $0
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	pushq 0(%rbp)
+	pushq -8(%rbp)
 	pushq $0
 	call C_Null
 	addq $8, %rsp

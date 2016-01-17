@@ -22,8 +22,8 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
-	pushq 0(%rbp)
+	movq %rax, -8(%rbp)
+	pushq -8(%rbp)
 	pushq $0
 	call C_Null
 	addq $8, %rsp

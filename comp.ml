@@ -37,7 +37,7 @@ let rec alloc_expr (env, k) e = match e.e with
 
 and alloc_bloc (env, k) b = match b.b with
     | [] -> (env, k)
-    | {b1= Bvar v ;lb1=_}::q -> alloc_bloc (Emap.add (id_of_var v) (k) env, k-1) {b=q; lb=b.lb}
+    | {b1= Bvar v ;lb1=_}::q -> alloc_bloc (Emap.add (id_of_var v) (k-1) env, k-1) {b=q; lb=b.lb}
     | {b1= Bexpr e ;lb1=_}::q -> alloc_bloc (alloc_expr (env, k) e) {b=q; lb=b.lb}
 
 let alloc_methode m =
@@ -91,8 +91,10 @@ let rec compile_expr env e = match e.e with
             let o = 8*(Ocmap.find (c, id) !oc) in
             pushq (ind ~ofs:o r15)) (* on mettra dans r15 l'adresse d'un objet avant d'appeler une de ses méthodes *)
             
-    | Eacc {a= Aexpid (e, id); la=_} ->
+    | Eacc {a= Aexpid (e, id); la=loc} ->
         (* il faut accéder au champ id de l'objet e, donc on regarde la classe de e et on utilise oc *)
+        if e.e = Ethis then compile_expr env {e= (Eacc {a= Aid id; la= loc}); le= e.le; te= e.te}
+        else
         let Typ(c,_) = e.te.t in
         let o = 8*(Ocmap.find (c, id) !oc) in
         compile_expr env e ++
@@ -112,7 +114,9 @@ let rec compile_expr env e = match e.e with
             call "C_Unit" ++
             addq (imm 8) (reg rsp) ++
             pushq (reg rax)
-    | Eaccexp ({a= Aexpid (e1, id); la=_}, e2) ->
+    | Eaccexp ({a= Aexpid (e1, id); la=loc}, e2) ->
+        if e1.e = Ethis then compile_expr env {e= (Eaccexp ({a= Aid id; la= loc}, e2)); le= e.le; te= e.te}
+        else
         let Typ(c,_) = e1.te.t in
         let o = 8*(Ocmap.find (c, id) !oc) in
         compile_expr env e1 ++
@@ -139,7 +143,7 @@ let rec compile_expr env e = match e.e with
         List.fold_right (fun e code -> code ++ compile_expr env e) le nop ++
             movq (ilab ("D_"^c)) (reg rbx) ++
         compile_expr env e ++
-            pushq (reg r15) ++
+            popq (r15) ++
             call_star (ind ~ofs:o rbx) ++
             addq (imm (8*List.length le)) (reg rsp) ++
             pushq (reg rax)
@@ -323,7 +327,7 @@ and compile_bl env bl = match bl.b1 with
             movq (reg rax) (ind ~ofs:(8*(Emap.find id env)) rbp)
         
     | Bexpr e ->
-        compile_expr env e
+        compile_expr env e (* faut-il dépiler pour ne pas faire grossir la pile avec ++ addq (imm 8) (reg rsp) *)
 
 and compile_methode m c =
     let s = ident_of_m m and lp = param_of_m m and e = exp_of_m m and k = ref 1 in
@@ -380,10 +384,14 @@ let comp_classe cl =
     omax:= Omaxmap.add c (!numc, !numm) !omax;
     descr:= Dmap.add c !l !descr
 
-let rec cherche_expr id = function
-    | [] -> failwith "expression non trouvée"
+let rec cherche_expr id cl = function
+    | [] when (ident_of_class cl = "Any") -> failwith "expression non trouvée"
+    | [] ->
+        let Typ(c_extends,_) = (extends_of_class cl).t in
+        let cl_extends = (Cmap.find c_extends ((Envmap.find c_extends !envmap).classes)).classe in
+            cherche_expr id cl_extends (dec_of_class cl_extends)
     | {d=Dvar v; ld=_}::q when id_of_var v = id -> exp_of_var v
-    | x::q -> cherche_expr id q
+    | x::q -> cherche_expr id cl q
 
 let constr_of_class cl =
 (* on a un certains nombre de champs de cl avec leur offset dans !oc.
@@ -402,7 +410,7 @@ il y a des paramètres et des variables *)
                                 addq (imm 8) (reg r12) ++
                                 (match List.mem id (List.map (fun p -> let (id,_) = p.p in id) lp) with
                                     | true -> nop
-                                    | false -> let e = cherche_expr id ld in
+                                    | false -> let e = cherche_expr id cl ld in
                                         compile_expr Emap.empty e) ++
                                 popq (rbx) ++
                                 movq (reg rbx) (ind (r12))
@@ -438,6 +446,7 @@ let compile_classe_main cM =
 (** Compilation d'un fichier **)
 
 let comp fichier =
+    est_bien_type fichier;
     chaines:= nop; numero := 0; descr := descr_empty;
     omax:= omax_empty; oc:= Ocmap.empty; om:= Ommap.empty;
 	let (lc, cM) = fichier.f in

@@ -1,11 +1,14 @@
 class A {
   var s : String = null;
+  def set(x: String) { s = x };
   def get() : String = s
 }
 
 object Main {
   def main(args: Array[String]) {
-    
-    print(", world!\n")
+    var a = new A();
+    print(a.get());
+    a.set("hello");
+    print(a.get())
   }
 }

@@ -34,7 +34,7 @@ M_Main_main:
 	movq %rax, 8(%r13)
 	pushq %r13
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	movq %rbp, %rsp
 	popq %rbp
 	ret

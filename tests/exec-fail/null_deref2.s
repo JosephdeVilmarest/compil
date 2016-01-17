@@ -28,10 +28,10 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
-	movq %rax, 0(%rbp)
+	movq %rax, -8(%rbp)
 	movq $D_A, %rbx
-	pushq 0(%rbp)
-	pushq %r15
+	pushq -8(%rbp)
+	popq %r15
 	call *8(%rbx)
 	addq $0, %rsp
 	pushq %rax
