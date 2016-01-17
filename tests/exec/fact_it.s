@@ -44,8 +44,10 @@ M_Main_main:
 	pushq %rax
 	movq $D_Fact, %rbx
 	pushq -8(%rbp)
+	movq %r15, %r9
 	popq %r15
 	call *8(%rbx)
+	movq %r9, %r15
 	addq $8, %rsp
 	pushq %rax
 	call print_int
@@ -70,8 +72,10 @@ M_Main_main:
 	pushq %rax
 	movq $D_Fact, %rbx
 	pushq -8(%rbp)
+	movq %r15, %r9
 	popq %r15
 	call *8(%rbx)
+	movq %r9, %r15
 	addq $8, %rsp
 	pushq %rax
 	call print_int

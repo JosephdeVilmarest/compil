@@ -10,61 +10,101 @@ main:
 C_Main:
 	movq $8, %rdi
 	call malloc
-	pushq %rax
+	pushq %r15
 	movq %rax, %r15
+	pushq %rax
 	movq %rax, %r12
 	movq $D_Main, 0(%r12)
 	popq %rax
+	popq %r15
 	ret
-C_BST:
-	movq $56, %rdi
+C_A:
+	movq $16, %rdi
 	call malloc
-	pushq %rax
+	pushq %r15
 	movq %rax, %r15
+	pushq %rax
 	movq %rax, %r12
-	movq $D_BST, 0(%r12)
+	movq $D_A, 0(%r12)
 	addq $8, %r12
 	pushq %r12
-	pushq 8(%rsp)
-	popq %rbx
-	popq %r12
-	movq %rbx, 0(%r12)
-	addq $8, %r12
-	pushq %r12
-	pushq 16(%rsp)
-	popq %rbx
-	popq %r12
-	movq %rbx, 0(%r12)
-	addq $8, %r12
-	pushq %r12
-	pushq 24(%rsp)
-	popq %rbx
-	popq %r12
-	movq %rbx, 0(%r12)
-	addq $8, %r12
-	pushq %r12
-	pushq 8(%r15)
-	popq %rbx
-	popq %r12
-	movq %rbx, 0(%r12)
-	addq $8, %r12
-	pushq %r12
-	pushq 16(%r15)
-	popq %rbx
-	popq %r12
-	movq %rbx, 0(%r12)
-	addq $8, %r12
-	pushq %r12
-	pushq 24(%r15)
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	popq %rbx
 	popq %r12
 	movq %rbx, 0(%r12)
 	popq %rax
+	popq %r15
+	ret
+C_B:
+	movq $16, %rdi
+	call malloc
+	pushq %r15
+	movq %rax, %r15
+	pushq %rax
+	movq %rax, %r12
+	movq $D_B, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	popq %rax
+	popq %r15
 	ret
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $0, %rsp
+	subq $16, %rsp
+	call C_A
+	addq $0, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, -8(%rbp)
+	call C_B
+	addq $0, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, -16(%rbp)
+	pushq $1
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	movq $D_A, %rbx
+	pushq -8(%rbp)
+	movq %r15, %r9
+	popq %r15
+	call *8(%rbx)
+	movq %r9, %r15
+	addq $8, %rsp
+	pushq %rax
+	pushq $1
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	movq $D_B, %rbx
+	pushq -16(%rbp)
+	movq %r15, %r9
+	popq %r15
+	call *8(%rbx)
+	movq %r9, %r15
+	addq $8, %rsp
+	pushq %rax
+	pushq -8(%rbp)
+	popq %rax
+	pushq 8(%rax)
+	call print_int
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	pushq $.S0
 	call C_String
 	addq $8, %rsp
@@ -75,343 +115,16 @@ M_Main_main:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
+	pushq -16(%rbp)
 	popq %rax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
-M_BST_add:
-	pushq %rbp
-	movq %rsp, %rbp
-	subq $0, %rsp
-	pushq 16(%rbp)
-	pushq 40(%r15)
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
-	sete %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L1
-	movq $0, %rax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
-	jmp L2
-L1:
-	pushq $0
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-L2:
-	pushq 16(%rbp)
-	pushq 40(%r15)
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq %r13, 8(%rax)
-	sets %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L3
-	pushq 32(%r15)
-	pushq $0
-	call C_Null
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
-	sete %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L7
-	pushq $0
-	call C_Null
-	addq $8, %rsp
-	pushq %rax
-	pushq 16(%rbp)
-	pushq $0
-	call C_Null
-	addq $8, %rsp
-	pushq %rax
-	call C_BST
-	addq $24, %rsp
-	pushq %rax
-	popq %rax
-	movq %rax, 32(%r15)
-	pushq $0
-	call C_Unit
-	addq $8, %rsp
-	pushq %rax
-	jmp L8
-L7:
-	pushq 16(%rbp)
-	movq $D_BST, %rbx
-	pushq 32(%r15)
-	popq %r15
-	call *8(%rbx)
-	addq $8, %rsp
-	pushq %rax
-L8:
-	jmp L4
-L3:
-	pushq 48(%r15)
-	pushq $0
-	call C_Null
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
-	sete %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L5
-	pushq $0
-	call C_Null
-	addq $8, %rsp
-	pushq %rax
-	pushq 16(%rbp)
-	pushq $0
-	call C_Null
-	addq $8, %rsp
-	pushq %rax
-	call C_BST
-	addq $24, %rsp
-	pushq %rax
-	popq %rax
-	movq %rax, 48(%r15)
-	pushq $0
-	call C_Unit
-	addq $8, %rsp
-	pushq %rax
-	jmp L6
-L5:
-	pushq 16(%rbp)
-	movq $D_BST, %rbx
-	pushq 48(%r15)
-	popq %r15
-	call *8(%rbx)
-	addq $8, %rsp
-	pushq %rax
-L6:
-L4:
-	popq %rax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
-M_BST_contains:
-	pushq %rbp
-	movq %rsp, %rbp
-	subq $0, %rsp
-	pushq 16(%rbp)
-	pushq 40(%r15)
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
-	sete %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L9
-	pushq $1
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
-	jmp L10
-L9:
-	pushq $0
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-L10:
-	pushq 16(%rbp)
-	pushq 40(%r15)
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq %r13, 8(%rax)
-	sets %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L13
-	pushq 32(%r15)
-	pushq $0
-	call C_Null
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
-	setne %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-L13:
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L11
-	pushq 16(%rbp)
-	movq $D_BST, %rbx
-	pushq 32(%r15)
-	popq %r15
-	call *16(%rbx)
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
-	jmp L12
-L11:
-	pushq $0
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-L12:
-	pushq 48(%r15)
-	pushq $0
-	call C_Null
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
-	setne %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L14
-	pushq 16(%rbp)
-	movq $D_BST, %rbx
-	pushq 48(%r15)
-	popq %r15
-	call *16(%rbx)
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
-	jmp L15
-L14:
-	pushq $0
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-L15:
-	pushq $0
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
-	popq %rax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
-M_BST_display:
-	pushq %rbp
-	movq %rsp, %rbp
-	subq $0, %rsp
-	pushq 32(%r15)
-	pushq $0
-	call C_Null
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
-	setne %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L16
-	movq $D_BST, %rbx
-	pushq 32(%r15)
-	popq %r15
-	call *24(%rbx)
-	addq $0, %rsp
-	pushq %rax
-	jmp L17
-L16:
-	pushq $0
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-L17:
-	pushq $.S18
-	call C_String
-	addq $8, %rsp
-	pushq %rax
-	call print_string
-	addq $8, %rsp
-	pushq $0
-	call C_Unit
-	addq $8, %rsp
-	pushq %rax
-	pushq 40(%r15)
+	pushq 8(%rax)
 	call print_int
 	addq $8, %rsp
 	pushq $0
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	pushq $.S19
+	pushq $.S1
 	call C_String
 	addq $8, %rsp
 	pushq %rax
@@ -421,37 +134,49 @@ L17:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	pushq 48(%r15)
+	popq %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_A_set_a:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $0, %rsp
+	pushq 16(%rbp)
+	popq %rax
+	movq %rax, 16(%rbp)
 	pushq $0
-	call C_Null
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_B_set_a:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $0, %rsp
+	pushq 16(%rbp)
+	pushq $2
+	call C_Int
 	addq $8, %rsp
 	pushq %rax
 	popq %rbx
 	popq %rax
 	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
-	setne %cl
-	movzbq %cl, %rcx
-	pushq %rcx
-	call C_Boolean
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	cmpq $0, 8(%rax)
-	je L20
-	movq $D_BST, %rbx
-	pushq 48(%r15)
-	popq %r15
-	call *24(%rbx)
-	addq $0, %rsp
-	pushq %rax
-	jmp L21
-L20:
-	pushq $0
+	movq 8(%rax), %r14
+	imulq %r13, %r14
+	pushq %r14
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
-L21:
+	popq %rax
+	movq %rax, 8(%r15)
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
@@ -577,14 +302,16 @@ print_string:
 	popq %rbp
 	ret
 .data
+D_A:
+	.quad D_AnyRef, M_A_set_a
 D_Any:
 	.quad D_Any
 D_AnyRef:
 	.quad D_Any
 D_AnyVal:
 	.quad D_Any
-D_BST:
-	.quad D_AnyRef, M_BST_add, M_BST_contains, M_BST_display
+D_B:
+	.quad D_A, M_B_set_a
 D_Boolean:
 	.quad D_AnyVal
 D_Int:
@@ -604,8 +331,6 @@ D_Unit:
 .Sprint_string:
 	.string "%s"
 .S0:
-	.string "ok\n"
-.S18:
-	.string " "
-.S19:
-	.string " "
+	.string "\n"
+.S1:
+	.string "\n"

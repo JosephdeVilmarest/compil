@@ -27,6 +27,9 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
+	pushq 8(%rax)
+	call C_Int
+	addq $8, %rsp
 	negq 8(%rax)
 	pushq %rax
 	pushq $6
@@ -69,8 +72,10 @@ M_Main_main:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rax, 8(%r13)
-	pushq %r13
+	pushq %rax
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	popq %rbx
 	popq %rax
 	movq 8(%rbx), %r13
@@ -148,8 +153,10 @@ M_Main_main:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rax, 8(%r13)
-	pushq %r13
+	pushq %rax
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	pushq $2
 	call C_Int
 	addq $8, %rsp
@@ -204,8 +211,10 @@ M_Main_main:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rax, 8(%r13)
-	pushq %r13
+	pushq %rax
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	popq %rbx
 	popq %rax
 	movq 8(%rbx), %r13
@@ -246,8 +255,10 @@ M_Main_main:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rdx, 8(%r13)
-	pushq %r13
+	pushq %rdx
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	pushq -16(%rbp)
 	popq %rbx
 	popq %rax

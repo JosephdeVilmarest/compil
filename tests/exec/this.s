@@ -49,16 +49,20 @@ M_Main_main:
 	movq %rax, -8(%rbp)
 	movq $D_A, %rbx
 	pushq -8(%rbp)
+	movq %r15, %r9
 	popq %r15
 	call *8(%rbx)
+	movq %r9, %r15
 	addq $0, %rsp
 	pushq %rax
 	popq %rax
 	movq %rax, -16(%rbp)
 	movq $D_A, %rbx
 	pushq -16(%rbp)
+	movq %r15, %r9
 	popq %r15
 	call *8(%rbx)
+	movq %r9, %r15
 	addq $0, %rsp
 	pushq %rax
 	popq %rax

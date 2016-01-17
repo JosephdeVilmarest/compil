@@ -77,8 +77,10 @@ L2:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rax, 8(%r13)
-	pushq %r13
+	pushq %rax
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	call print_int
 	addq $8, %rsp
 	pushq $0

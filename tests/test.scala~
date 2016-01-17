@@ -1,12 +1,21 @@
-class A {
-  var x = 1
+class Power {
+  def power(a: Int, n: Int) : Int = {
+    var r = 1;
+    var p = a;
+    var e = n;
+    while (e > 0) {
+      if (e % 2 != 0) r = r * p;
+      p = p * p;
+      print (r); print(p); print(e); print ("\n");
+      e = e / 2
+    };
+    r
+   }
 }
-class B extends A {
-  var u = x = 2
-}
+
 object Main {
   def main(args: Array[String]) {
-    var b = new B();
-    print(b.x)
+    var p = new Power();
+    print(p.power(2, 4))
   }
 }

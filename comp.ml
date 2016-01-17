@@ -156,9 +156,11 @@ let rec compile_expr env e = match e.e with
         List.fold_right (fun e code -> code ++ compile_expr env e) le nop ++
             movq (ilab ("D_"^c)) (reg rbx) ++
         compile_expr env e ++
+            movq (reg r15) (reg r9) ++
             popq (r15) ++
             
             call_star (ind ~ofs:o rbx) ++
+            movq (reg r9) (reg r15) ++
             
             addq (imm (8*List.length le)) (reg rsp) ++
             pushq (reg rax)
@@ -172,6 +174,9 @@ let rec compile_expr env e = match e.e with
     | Eneg e -> (* la négation de b vaut 1-b *)
             compile_expr env e ++
             popq (rax) ++
+            pushq (ind ~ofs:8 rax) ++
+            call "C_Boolean" ++
+            addq (imm 8) (reg rsp) ++
             negq (ind ~ofs:8 rax) ++
             addq (imm 1) (ind ~ofs:8 rax) ++
             pushq (reg rax)
@@ -179,6 +184,9 @@ let rec compile_expr env e = match e.e with
     | Emoins e ->
             compile_expr env e ++
             popq (rax) ++
+            pushq (ind ~ofs:8 rax) ++
+            call "C_Int" ++
+            addq (imm 8) (reg rsp) ++
             negq (ind ~ofs:8 rax) ++
             pushq (reg rax)
     
@@ -192,6 +200,9 @@ let rec compile_expr env e = match e.e with
             compile_expr env f ++
             popq (rax) ++
         label ("L"^s) ++
+            pushq (ind ~ofs:8 rax) ++
+            call "C_Boolean" ++
+            addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     | Eop (e, o, f) when o.o = Ou -> (* il faut évaluer paresseusement encore *)
         let s = string_of_int !numero in
@@ -203,6 +214,9 @@ let rec compile_expr env e = match e.e with
             compile_expr env f ++
             popq (rax) ++
         label ("L"^s) ++
+            pushq (ind ~ofs:8 rax) ++
+            call "C_Boolean" ++
+            addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     | Eop (e,o,f) when o.o = Div ->
         compile_expr env e ++
@@ -212,8 +226,10 @@ let rec compile_expr env e = match e.e with
         movq (ind ~ofs:8 r13) (reg rax) ++
         movq (ind ~ofs:8 r14) (reg rbx) ++
         cqto ++ idivq (reg rbx) ++
-        movq (reg rax) (ind ~ofs:8 r13) ++
-        pushq (reg r13)
+        pushq (reg rax) ++
+        call"C_Int" ++
+        addq (imm 8) (reg rsp) ++
+        pushq (reg rax)
     | Eop (e,o,f) when o.o = Reste ->
         compile_expr env e ++
         compile_expr env f ++
@@ -222,8 +238,10 @@ let rec compile_expr env e = match e.e with
         movq (ind ~ofs:8 r13) (reg rax) ++
         movq (ind ~ofs:8 r14) (reg rbx) ++
         cqto ++ idivq (reg rbx) ++
-        movq (reg rdx) (ind ~ofs:8 r13) ++
-        pushq (reg r13)
+        pushq (reg rdx) ++
+        call"C_Int" ++
+        addq (imm 8) (reg rsp) ++
+        pushq (reg rax)
     | Eop (e, o, f) when List.mem o.o [Add; Sub; Mul] ->
             compile_expr env e ++
             compile_expr env f ++
@@ -432,7 +450,7 @@ il y a des paramètres et des variables *)
         movq (imm (8*(nbc+1))) (reg rdi) ++
         call "malloc" ++
         (* on empile rax pour le sauvegarder et le redonner à la fin *)
-        pushq (reg r15) ++
+        pushq (reg r15) ++ (* on sauvegarde r15 *)
         movq (reg rax) (reg r15) ++
         pushq (reg rax) ++
         movq (reg rax) (reg r12) ++ (* on met rax dans r12 que l'on augmentera petit à petit *)

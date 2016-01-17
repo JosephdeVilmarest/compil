@@ -82,6 +82,9 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
+	pushq 8(%rax)
+	call C_Boolean
+	addq $8, %rsp
 	negq 8(%rax)
 	addq $1, 8(%rax)
 	pushq %rax
@@ -94,6 +97,9 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	popq %rax
+	pushq 8(%rax)
+	call C_Boolean
+	addq $8, %rsp
 	negq 8(%rax)
 	addq $1, 8(%rax)
 	pushq %rax

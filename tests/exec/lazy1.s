@@ -43,8 +43,10 @@ M_Main_main:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rax, 8(%r13)
-	pushq %r13
+	pushq %rax
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	pushq $3
 	call C_Int
 	addq $8, %rsp
@@ -61,6 +63,9 @@ M_Main_main:
 	pushq %rax
 	popq %rax
 L4:
+	pushq 8(%rax)
+	call C_Boolean
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 	cmpq $0, 8(%rax)
@@ -109,8 +114,10 @@ L1:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rax, 8(%r13)
-	pushq %r13
+	pushq %rax
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	pushq $2
 	call C_Int
 	addq $8, %rsp
@@ -127,6 +134,9 @@ L1:
 	pushq %rax
 	popq %rax
 L9:
+	pushq 8(%rax)
+	call C_Boolean
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 	cmpq $0, 8(%rax)

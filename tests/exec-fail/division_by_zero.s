@@ -36,8 +36,10 @@ M_Main_main:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rax, 8(%r13)
-	pushq %r13
+	pushq %rax
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	popq %rax
 	movq %rax, -8(%rbp)
 	popq %rax

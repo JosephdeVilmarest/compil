@@ -48,8 +48,10 @@ M_Main_main:
 	pushq %rax
 	movq $D_Power, %rbx
 	pushq -8(%rbp)
+	movq %r15, %r9
 	popq %r15
 	call *8(%rbx)
+	movq %r9, %r15
 	addq $16, %rsp
 	pushq %rax
 	call print_int
@@ -78,8 +80,10 @@ M_Main_main:
 	pushq %rax
 	movq $D_Power, %rbx
 	pushq -8(%rbp)
+	movq %r15, %r9
 	popq %r15
 	call *8(%rbx)
+	movq %r9, %r15
 	addq $16, %rsp
 	pushq %rax
 	call print_int
@@ -150,8 +154,10 @@ L3:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rax, 8(%r13)
-	pushq %r13
+	pushq %rax
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	pushq 16(%rbp)
 	movq $D_Power, %rbx
 	call *8(%rbx)
@@ -187,8 +193,10 @@ L3:
 	movq 8(%r14), %rbx
 	cqto
 	idivq %rbx
-	movq %rdx, 8(%r13)
-	pushq %r13
+	pushq %rdx
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	pushq $0
 	call C_Int
 	addq $8, %rsp
