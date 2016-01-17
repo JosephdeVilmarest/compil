@@ -9,7 +9,7 @@ let l_empty = ({pos_fname = ""; pos_lnum = 0; pos_bol = 0; pos_cnum = 0},
 (* une solution pour les chaines de caractères: maintenir une référence mise à nop au début de la fonction comp dans laquelle on met toutes les chaines rencontrées et ainsi à la fin on les met dans le data, on les associe à des entiers. La référence numero sera modifié dès qu'on écrira une chaine ou une étiquette *)
 
 module Omaxmap = Map.Make(String)
-let omax_empty = Omaxmap.add "Nothing" (0, 0) (Omaxmap.add "Null" (0, 0) (Omaxmap.add "String" (0, 0) (Omaxmap.add "AnyRef" (0, 0) (Omaxmap.add "Unit" (0, 0) (Omaxmap.add "Int" (0, 0) (Omaxmap.add "Boolean" (0, 0) (Omaxmap.add "AnyVal" (0, 0) (Omaxmap.add "Any" (0, 0) Omaxmap.empty))))))))
+let omax_empty = Omaxmap.add "Nothing" (0, -1) (Omaxmap.add "Null" (0, -1) (Omaxmap.add "String" (0, -1) (Omaxmap.add "AnyRef" (0, -1) (Omaxmap.add "Unit" (0, -1) (Omaxmap.add "Int" (0, -1) (Omaxmap.add "Boolean" (0, -1) (Omaxmap.add "AnyVal" (0, -1) (Omaxmap.add "Any" (0, -1) Omaxmap.empty))))))))
 
 module Key = struct type t = string * string let compare = Pervasives.compare end
 module Ocmap = Map.Make(Key) (* donne les offset des champs d'une classe *)
@@ -72,7 +72,8 @@ let rec compile_expr env e = match e.e with
             addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     
-    | Ethis -> failwith "à faire"
+    | Ethis ->
+        nop
      
     | Enull ->
             pushq (imm 0) ++ 
@@ -116,14 +117,19 @@ let rec compile_expr env e = match e.e with
             pushq (reg rax)
     
     | Eaccargexp ({a= Aid id; la=_}, ar, le) ->
+        let c = !thisref in
+        let o = 8 * (Ommap.find (c, id) !om) in
         List.fold_right (fun e code -> compile_expr env e ++ code) le nop ++
-            call ("M_"^(!thisref)^"_"^id) ++
+            movq (ilab ("D_"^c)) (reg rbx) ++  (* avant je faisais juste un call ("M_"^c^"_"^id) *)
+            call_star (ind ~ofs:o rbx) ++
             addq (imm (8*List.length le)) (reg rsp) ++
             pushq (reg rax)
     | Eaccargexp ({a= Aexpid (e,id); la=_}, ar, le) ->
         let Typ(c,_) = e.te.t in
+        let o = 8 * (Ommap.find (c, id) !om) in
         List.fold_right (fun e code -> compile_expr env e ++ code) le nop ++
-            call ("M_"^c^"_"^id) ++
+            movq (ilab ("D_"^c)) (reg rbx) ++
+            call_star (ind ~ofs:o rbx) ++
             addq (imm (8*List.length le)) (reg rsp) ++
             pushq (reg rax)
     
@@ -261,10 +267,12 @@ let rec compile_expr env e = match e.e with
             jmp ("L"^s1) ++
         label ("L"^s2)
     
-    | Ereturnvide -> movq (imm 0) (reg rax)
-    | Ereturn e -> compile_expr env e ++ popq (rax)
+    | Ereturnvide -> (* on ne remet rien sur la pile, on se contente de mettre la valeur à retourner dans rax *)
+            movq (imm 0) (reg rax)
+    | Ereturn e -> 
+            compile_expr env e ++ popq (rax)
     
-    | Eprint e when e.te.t = Typ ("Int", {at= []; lat= l_empty}) ->
+    | Eprint e when e.te.t = Typ ("Int", {at= []; lat= l_empty}) -> (* on ne remet rien sur la pile après avoir affiché *)
         compile_expr env e ++
             call "print_int" ++ (* ici e est un entier *)
             addq (imm 8) (reg rsp)
@@ -289,7 +297,8 @@ and compile_bl env bl = match bl.b1 with
         compile_expr env e
 
 and compile_methode m c =
-    let s = ident_of_m m and lp = param_of_m m and e = exp_of_m m and k = ref (-1) (* ou peut être 0 *) in
+    let s = ident_of_m m and lp = param_of_m m and e = exp_of_m m and k = ref 1 in
+    (* il y a l'ancienne valeur de rbp et l'adresse de retour en sommet de pile *)
     let env, taille = alloc_methode m in
     label ("M_"^c^"_"^s) ++
         pushq (reg rbp) ++ (* il faut garder en mémoire rbp pour le restaurer *)
@@ -325,10 +334,10 @@ let aux_decl d c c_extends l numc numm = match d.d with
         if Ocmap.exists (fun (c, x) k -> x = c) !oc then ()
         else (oc:= Ocmap.add (c, id) !numc !oc; numc:= !numc+1)
     | Dmethode {m=Mdef (s,_,_,_,_); lm=_} -> (* on sait ici que s n'est pas dans la classe extends *)
-        l:= List.append !l [c^"_"^s];
+        l:= List.append !l ["M_"^c^"_"^s];
         om:= Ommap.add (c, s) !numm !om; numm:= !numm+1
     | Dmethode {m=Moverride (s,_,_,_,_); lm=_} -> (* on sait ici que s est dans extends, on ne change pas son offset *)
-        l:= aux_modifie (c_extends^"_"^s) (c^"_"^s) !l
+        l:= aux_modifie ("M_"^c_extends^"_"^s) ("M_"^c^"_"^s) !l
 
 let comp_classe cl =
     let (c,_,lp,t,_,ld) = cl.c in let Typ (c_extends,_) = t.t in
@@ -378,17 +387,19 @@ let compile_methodes_classe cl =
                                                 | Dvar _ -> nop
                                                 | Dmethode m -> compile_methode m c)) nop (dec_of_class cl)
 
-let compile_classes lc =
-    List.iter (fun cl -> comp_classe cl) lc;
-    List.fold_left (fun code cl -> code ++ constr_of_class cl) nop lc,
-    List.fold_left (fun code cl -> code ++ compile_methodes_classe cl) nop lc
+let compile_classes lc cM =
+    let cm = {c= ("Main",[],[],{t=Typ("Any",{at= [];lat= l_empty}); lt=l_empty},[],cM.cM);lc= l_empty} in
+    List.iter (fun cl -> comp_classe cl) (cm::lc);
+    List.fold_left (fun code cl -> code ++ constr_of_class cl) nop (cm::lc),
+    List.fold_left (fun code cl -> code ++ compile_methodes_classe cl) nop (cm::lc)
 
 
 
 (** Compilation de la classe Main **)
 
 let compile_classe_main cM =
-    let cl = {c= ("Main",[],[],{t=Typ("Unit",{at= [];lat= l_empty}); lt=l_empty},[],cM.cM);lc= l_empty} in
+    let cl = {c= ("Main",[],[],{t=Typ("Any",{at= [];lat= l_empty}); lt=l_empty},[],cM.cM);lc= l_empty} in
+    comp_classe cl;
     let constr_Main = constr_of_class cl
     and meth_Main = compile_methodes_classe cl in
     constr_Main, meth_Main
@@ -401,8 +412,7 @@ let comp fichier =
     chaines:= nop; numero := 0; descr := descr_empty;
     omax:= omax_empty; oc:= Ocmap.empty; om:= Ommap.empty;
 	let (lc, cM) = fichier.f in
-	let constrmain, methmain = compile_classe_main cM in
-	let codeclasses, codemethodes = compile_classes lc in
+	let codeclasses, codemethodes = compile_classes lc cM in
 	{text =
 	glabel "main" ++
 	    call "C_Main" ++ 
@@ -411,7 +421,6 @@ let comp fichier =
 	    call "M_Main_main" ++
 	    xorq (reg rax) (reg rax) ++
 	    ret ++
-	    constrmain ++ methmain ++
         (* le constructeur de Main sert à stocker les variables définies dans Main avant Main_main *)
         codeclasses ++ codemethodes ++
     (* on s'occupe des classes prédéfinies *)
@@ -483,9 +492,7 @@ let comp fichier =
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret; 
 	data =
-	label "D_Main" ++
-        address ["D_Any"; "M_Main_main"] ++
-        Dmap.fold (fun s l code -> code ++ label ("D_"^s) ++ address l) !descr nop ++
+	    Dmap.fold (fun s l code -> code ++ label ("D_"^s) ++ address l) !descr nop ++
     label ".Sprint_int" ++ string "%d" ++
 	label ".Sprint_string" ++ string "%s" ++
 	    !chaines

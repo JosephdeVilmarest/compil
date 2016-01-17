@@ -1,6 +1,8 @@
-
 object Main {
+
+  def m(s: String) { print(s) };
+
   def main(args: Array[String]) {
-    var expr1 = 1; print(expr1)
+    m("hello, world !")
   }
 }

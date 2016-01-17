@@ -11,58 +11,32 @@ C_Main:
 	movq %rax, %r12
 	movq $D_Main, 0(%r12)
 	ret
+M_Main_m:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $0, %rsp
+	
+	pushq 8(%rbp)
+	call print_string
+	addq $8, %rsp
+	
+	movq %rbp, %rsp
+	popq %rbp
+	ret
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $8, %rsp
-	pushq $1
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	movq %rax, 0(%rbp)
-L0:
-	pushq 0(%rbp)
-	pushq $2
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
-	setns %cl
-	movzbq %cl, %rcx
-	movq %rcx, 8(%rax)
-	pushq %rax
-	popq %rax
-	movq 8(%rax), %rbx
-	cmpq $0, %rbx
-	je L1
-	pushq 0(%rbp)
-	pushq $1
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	addq %r13, 8(%rax)
-	pushq %rax
-	popq %rax
-	movq %rax, 0(%rbp)
-	pushq $0
-	call C_Unit
-	addq $8, %rsp
-	pushq %rax
-	pushq $.S2
+	subq $0, %rsp
+	
+	pushq $.S0
 	call C_String
 	addq $8, %rsp
+	
 	pushq %rax
-	call print_string
+	call M_Main_m
 	addq $8, %rsp
-	jmp L0
-L1:
+	
+	pushq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -211,5 +185,5 @@ D_Unit:
 	.string "%d"
 .Sprint_string:
 	.string "%s"
-.S2:
-	.string "content"
+.S0:
+	.string "hello, world!\n"

@@ -251,8 +251,6 @@ print_string:
 	popq %rbp
 	ret
 .data
-D_Main:
-	.quad D_Any, M_Main_main
 D_Any:
 	.quad D_Any
 D_AnyRef:
@@ -263,6 +261,8 @@ D_Boolean:
 	.quad D_AnyVal
 D_Int:
 	.quad D_AnyVal
+D_Main:
+	.quad D_Any, M_Main_main
 D_Nothing:
 	.quad D_Null
 D_Null:

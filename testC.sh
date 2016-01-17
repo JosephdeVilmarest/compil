@@ -39,7 +39,7 @@ echo -n "mauvais "
 for f in tests/syntax/bad/*.scala; do
     echo -n ".";
     max=`expr $max + 1`;
-    compile -parse--only $f;
+    compile --parse-only $f;
     case $? in
 	"0")
 	echo
@@ -57,7 +57,7 @@ echo -n "bons "
 for f in tests/syntax/good/*.scala tests/typing/bad/*.scala tests/typing/good/*.scala tests/exec/*.scala tests/exec-fail/*.scala; do
     echo -n ".";
     max=`expr $max + 1`;
-    compile -parse--only $f;
+    compile --parse-only $f;
     case $? in
 	"1")
 	echo
@@ -89,7 +89,7 @@ echo -n "mauvais "
 for f in tests/typing/bad/*.scala; do
     echo -n ".";
     max=`expr $max + 1`;
-    compile -type--only $f;
+    compile --type-only $f;
     case $? in
 	"0")
 	echo
@@ -107,7 +107,7 @@ echo -n "bons "
 for f in tests/typing/good/*.scala tests/exec/*.scala tests/exec-fail/*.scala; do
     echo -n ".";
     max=`expr $max + 1`;
-    compile -type--only $f;
+    compile --type-only $f;
     case $? in
 	"1")
 	echo

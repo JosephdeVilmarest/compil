@@ -11,19 +11,28 @@ C_Main:
 	movq %rax, %r12
 	movq $D_Main, 0(%r12)
 	ret
+M_Main_m:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $0, %rsp
+	pushq 16(%rbp)
+	call print_string
+	addq $8, %rsp
+	movq %rbp, %rsp
+	popq %rbp
+	ret
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $8, %rsp
-	pushq $1
-	call C_Int
+	subq $0, %rsp
+	pushq $.S0
+	call C_String
 	addq $8, %rsp
 	pushq %rax
-	popq %rax
-	movq %rax, 0(%rbp)
-	pushq 0(%rbp)
-	call print_int
+	movq $D_Main, %rbx
+	call *0(%rbx)
 	addq $8, %rsp
+	pushq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -148,8 +157,6 @@ print_string:
 	popq %rbp
 	ret
 .data
-D_Main:
-	.quad D_Any, M_Main_main
 D_Any:
 	.quad D_Any
 D_AnyRef:
@@ -160,6 +167,8 @@ D_Boolean:
 	.quad D_AnyVal
 D_Int:
 	.quad D_AnyVal
+D_Main:
+	.quad D_Any, M_Main_m, M_Main_main
 D_Nothing:
 	.quad D_Null
 D_Null:
@@ -172,3 +181,5 @@ D_Unit:
 	.string "%d"
 .Sprint_string:
 	.string "%s"
+.S0:
+	.string "hello, world !"
