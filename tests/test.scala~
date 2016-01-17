@@ -1,6 +1,6 @@
 class A {
   var s : String = null;
-  def set(x: String) { s = x }
+  def get() : String = s
 }
 
 object Main {

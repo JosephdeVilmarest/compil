@@ -85,31 +85,36 @@ let rec compile_expr env e = match e.e with
     
     | Eacc {a= Aid id; la=_} ->
         (try let o = 8*Emap.find id env in
-            pushq (ind ~ofs:o rbp)
-        with Not_found -> 
-            let o = 8*(Ocmap.find ("this", id) !oc) in
-            nop)
+            pushq (ind ~ofs:o rbp) (* c'est le cas où id est une variable locale, cas le plus simple *)
+        with Not_found -> (* dans ce cas id est le champ de la classe this *)
+            let c = !thisref in
+            let o = 8*(Ocmap.find (c, id) !oc) in
+            pushq (ind ~ofs:o r15)) (* on mettra dans r15 l'adresse d'un objet avant d'appeler une de ses méthodes *)
             
     | Eacc {a= Aexpid (e, id); la=_} ->
         (* il faut accéder au champ id de l'objet e, donc on regarde la classe de e et on utilise oc *)
         let Typ(c,_) = e.te.t in
-        let o = -8*(Ocmap.find (c, id) !oc) in
+        let o = 8*(Ocmap.find (c, id) !oc) in
         compile_expr env e ++
             popq (rax) ++
             pushq (ind ~ofs:o rax)
             
     | Eaccexp ({a= Aid id; la=_}, e) -> (* il faut mettre unit sur la pile, est-ce qu'on construit vraiment un objet unit ??? *)
-        let o = 8*Emap.find id env in
         compile_expr env e ++
             popq (rax) ++
-            movq (reg rax) (ind ~ofs:o rbp) ++
+        (try let o = 8*Emap.find id env in
+            movq (reg rax) (ind ~ofs:o rbp)
+        with Not_found ->
+            let c = !thisref in
+            let o = 8*(Ocmap.find (c, id) !oc) in
+            movq (reg rax) (ind ~ofs:o r15)) ++
             pushq (imm 0) ++
             call "C_Unit" ++
             addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     | Eaccexp ({a= Aexpid (e1, id); la=_}, e2) ->
         let Typ(c,_) = e1.te.t in
-        let o = -8*(Ocmap.find (c, id) !oc) in
+        let o = 8*(Ocmap.find (c, id) !oc) in
         compile_expr env e1 ++
         compile_expr env e2 ++
             popq (rbx) ++
@@ -120,7 +125,7 @@ let rec compile_expr env e = match e.e with
             addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     
-    | Eaccargexp ({a= Aid id; la=_}, ar, le) ->
+    | Eaccargexp ({a= Aid id; la=_}, ar, le) -> (* que mettre dans r15 ? *)
         let c = !thisref in
         let o = 8 * (Ommap.find (c, id) !om) in
         List.fold_right (fun e code -> code ++ compile_expr env e) le nop ++
@@ -133,6 +138,8 @@ let rec compile_expr env e = match e.e with
         let o = 8 * (Ommap.find (c, id) !om) in
         List.fold_right (fun e code -> code ++ compile_expr env e) le nop ++
             movq (ilab ("D_"^c)) (reg rbx) ++
+        compile_expr env e ++
+            pushq (reg r15) ++
             call_star (ind ~ofs:o rbx) ++
             addq (imm (8*List.length le)) (reg rsp) ++
             pushq (reg rax)

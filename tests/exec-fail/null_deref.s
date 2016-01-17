@@ -38,7 +38,7 @@ M_Main_main:
 	movq %rax, 0(%rbp)
 	pushq 0(%rbp)
 	popq %rax
-	pushq -8(%rax)
+	pushq 8(%rax)
 	call print_int
 	addq $8, %rsp
 	pushq $0

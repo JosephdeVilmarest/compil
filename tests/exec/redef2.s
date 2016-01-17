@@ -38,10 +38,14 @@ M_Main_main:
 	popq %rax
 	movq %rax, -8(%rbp)
 	movq $D_A, %rbx
+	pushq 0(%rbp)
+	pushq %r15
 	call *8(%rbx)
 	addq $0, %rsp
 	pushq %rax
 	movq $D_B, %rbx
+	pushq -8(%rbp)
+	pushq %r15
 	call *8(%rbx)
 	addq $0, %rsp
 	pushq %rax
@@ -49,6 +53,8 @@ M_Main_main:
 	popq %rax
 	movq %rax, -16(%rbp)
 	movq $D_A, %rbx
+	pushq -16(%rbp)
+	pushq %r15
 	call *8(%rbx)
 	addq $0, %rsp
 	pushq %rax

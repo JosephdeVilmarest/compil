@@ -36,6 +36,8 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Power, %rbx
+	pushq 0(%rbp)
+	pushq %r15
 	call *8(%rbx)
 	addq $16, %rsp
 	pushq %rax
@@ -64,6 +66,8 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Power, %rbx
+	pushq 0(%rbp)
+	pushq %r15
 	call *8(%rbx)
 	addq $16, %rsp
 	pushq %rax
