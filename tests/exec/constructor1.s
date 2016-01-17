@@ -43,6 +43,7 @@ M_Main_main:
 	movq %rsp, %rbp
 	subq $8, %rsp
 	call C_A
+	addq $0, %rsp
 	pushq %rax
 	popq %rax
 	movq %rax, -8(%rbp)

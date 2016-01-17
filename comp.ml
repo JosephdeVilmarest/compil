@@ -121,6 +121,7 @@ let rec compile_expr env e = match e.e with
         with Not_found ->
             let c = !thisref in
             let o = 8*(Ocmap.find (c, id) !oc) in
+            
             movq (reg rax) (ind ~ofs:o r15)) ++
             pushq (imm 0) ++
             call "C_Unit" ++
@@ -165,6 +166,7 @@ let rec compile_expr env e = match e.e with
     | Enewidargexp (s, ar, le) -> (* on met les expressions sur la pile et on appelle le constructeur *)
         List.fold_right (fun e code -> compile_expr env e ++ code) le nop ++
             call ("C_"^s) ++
+            addq (imm (8*(List.length le))) (reg rsp) ++
             pushq (reg rax)
     
     | Eneg e -> (* la négation de b vaut 1-b *)
@@ -430,6 +432,7 @@ il y a des paramètres et des variables *)
         movq (imm (8*(nbc+1))) (reg rdi) ++
         call "malloc" ++
         pushq (reg rax) ++ (* on empile rax pour le sauvegarder et le redonner à la fin *)
+        (*movq (reg rax) (reg r15) ++ *)
         movq (reg rax) (reg r12) ++ (* on met rax dans r12 que l'on augmentera petit à petit *)
         movq (ilab ("D_"^c)) (ind (r12)) ++
         List.fold_left (fun code id -> 
