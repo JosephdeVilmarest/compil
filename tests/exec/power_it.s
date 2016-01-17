@@ -10,14 +10,18 @@ main:
 C_Main:
 	movq $8, %rdi
 	call malloc
+	pushq %rax
 	movq %rax, %r12
 	movq $D_Main, 0(%r12)
+	popq %rax
 	ret
 C_Power:
 	movq $8, %rdi
 	call malloc
+	pushq %rax
 	movq %rax, %r12
 	movq $D_Power, 0(%r12)
+	popq %rax
 	ret
 M_Main_main:
 	pushq %rbp
@@ -87,6 +91,7 @@ M_Main_main:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
+	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -161,8 +166,11 @@ L2:
 	popq %rbx
 	popq %rax
 	movq 8(%rbx), %r13
-	imulq 8(%rax), %r13
-	movq %r13, 8(%rax)
+	movq 8(%rax), %r14
+	imulq %r13, %r14
+	pushq %r14
+	call C_Int
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 	movq %rax, -8(%rbp)
@@ -182,8 +190,11 @@ L5:
 	popq %rbx
 	popq %rax
 	movq 8(%rbx), %r13
-	imulq 8(%rax), %r13
-	movq %r13, 8(%rax)
+	movq 8(%rax), %r14
+	imulq %r13, %r14
+	pushq %r14
+	call C_Int
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 	movq %rax, -16(%rbp)
@@ -213,6 +224,7 @@ L5:
 	jmp L2
 L3:
 	pushq -8(%rbp)
+	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret

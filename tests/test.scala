@@ -1,13 +1,15 @@
-class A {
-  var s : String = null;
-  def set(x: String) { s = x };
-  def get() : String = s
+class Fact {
+  def fact(n: Int) : Int = {
+    if (n <= 1)
+      1
+    else
+      n * fact(n-1)
+  }
 }
 
 object Main {
   def main(args: Array[String]) {
-    var a = new A();
-    a.set("hello");
-    print(a.get())
+    var f = new Fact();
+    print(f.fact(5))
   }
 }

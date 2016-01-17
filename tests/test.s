@@ -10,74 +10,99 @@ main:
 C_Main:
 	movq $8, %rdi
 	call malloc
+	pushq %rax
 	movq %rax, %r12
 	movq $D_Main, 0(%r12)
+	popq %rax
 	ret
-C_A:
-	movq $16, %rdi
+C_Fact:
+	movq $8, %rdi
 	call malloc
-	movq %rax, %r12
-	movq $D_A, 0(%r12)
-	addq $8, %r12
-	pushq $0
-	call C_Null
-	addq $8, %rsp
 	pushq %rax
-	popq %rbx
-	movq %rbx, 0(%r12)
+	movq %rax, %r12
+	movq $D_Fact, 0(%r12)
+	popq %rax
 	ret
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
 	subq $8, %rsp
-	call C_A
+	call C_Fact
 	pushq %rax
 	popq %rax
 	movq %rax, -8(%rbp)
-	pushq $.S0
-	call C_String
+	pushq $5
+	call C_Int
 	addq $8, %rsp
 	pushq %rax
-	movq $D_A, %rbx
+	movq $D_Fact, %rbx
 	pushq -8(%rbp)
 	popq %r15
 	call *8(%rbx)
 	addq $8, %rsp
 	pushq %rax
-	movq $D_A, %rbx
-	pushq -8(%rbp)
-	popq %r15
-	call *16(%rbx)
-	addq $0, %rsp
-	pushq %rax
-	call print_string
+	call print_int
 	addq $8, %rsp
 	pushq $0
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
+	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
-M_A_set:
+M_Fact_fact:
 	pushq %rbp
 	movq %rsp, %rbp
 	subq $0, %rsp
 	pushq 16(%rbp)
-	popq %rax
-	movq %rax, 8(%r15)
-	pushq $0
-	call C_Unit
+	pushq $1
+	call C_Int
 	addq $8, %rsp
 	pushq %rax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
-M_A_get:
-	pushq %rbp
-	movq %rsp, %rbp
-	subq $0, %rsp
-	pushq 8(%r15)
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	cmpq 8(%rax), %r13
+	setns %cl
+	movzbq %cl, %rcx
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L0
+	pushq $1
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	jmp L1
+L0:
+	pushq 16(%rbp)
+	pushq 16(%rbp)
+	pushq $1
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rax), %r14
+	subq 8(%rbx), %r14
+	movq %r14, 8(%rax)
+	pushq %rax
+	movq $D_Fact, %rbx
+	call *8(%rbx)
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rax), %r14
+	imulq 8(%rbx), %r14
+	movq %r14, 8(%rax)
+	pushq %rax
+L1:
+	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -202,8 +227,6 @@ print_string:
 	popq %rbp
 	ret
 .data
-D_A:
-	.quad D_AnyRef, M_A_set, M_A_get
 D_Any:
 	.quad D_Any
 D_AnyRef:
@@ -212,6 +235,8 @@ D_AnyVal:
 	.quad D_Any
 D_Boolean:
 	.quad D_AnyVal
+D_Fact:
+	.quad D_AnyRef, M_Fact_fact
 D_Int:
 	.quad D_AnyVal
 D_Main:
@@ -228,5 +253,3 @@ D_Unit:
 	.string "%d"
 .Sprint_string:
 	.string "%s"
-.S0:
-	.string "hello"

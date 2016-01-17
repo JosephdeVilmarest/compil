@@ -10,20 +10,26 @@ main:
 C_Main:
 	movq $8, %rdi
 	call malloc
+	pushq %rax
 	movq %rax, %r12
 	movq $D_Main, 0(%r12)
+	popq %rax
 	ret
 C_A:
 	movq $8, %rdi
 	call malloc
+	pushq %rax
 	movq %rax, %r12
 	movq $D_A, 0(%r12)
+	popq %rax
 	ret
 C_B:
 	movq $8, %rdi
 	call malloc
+	pushq %rax
 	movq %rax, %r12
 	movq $D_B, 0(%r12)
+	popq %rax
 	ret
 M_Main_print_bool:
 	pushq %rbp
@@ -60,6 +66,7 @@ L1:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
+	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -138,6 +145,7 @@ M_Main_main:
 	call *8(%rbx)
 	addq $8, %rsp
 	pushq %rax
+	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -149,6 +157,7 @@ M_A_f:
 	call C_Boolean
 	addq $8, %rsp
 	pushq %rax
+	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -160,6 +169,7 @@ M_A_g:
 	call *8(%rbx)
 	addq $0, %rsp
 	pushq %rax
+	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -171,6 +181,7 @@ M_B_f:
 	call C_Boolean
 	addq $8, %rsp
 	pushq %rax
+	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret

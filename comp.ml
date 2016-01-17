@@ -35,12 +35,15 @@ let rec alloc_expr (env, k) e = match e.e with
     | Eaccexp (a,e) -> alloc_expr (env, k) e
     | Eaccargexp (_,_,le) -> List.fold_left alloc_expr (env,k) le
     | Enewidargexp (_,_,le) -> List.fold_left alloc_expr (env,k) le
+    | Eneg e -> alloc_expr (env,k) e
+    | Emoins e -> alloc_expr (env,k) e
+    | Eop (e1,o,e2) -> alloc_expr (alloc_expr ((env,k)) e1) e2
     | Eif (e,e1,e2) -> alloc_expr (alloc_expr (alloc_expr (env,k) e) e1) e2
     | Ewhile (e1,e2) -> alloc_expr (alloc_expr ((env,k)) e1) e2
     | Ereturn e -> alloc_expr (env,k) e
     | Eprint e -> alloc_expr (env,k) e
     | Ebloc b -> alloc_bloc (env, k) b
-    | _ -> (env, k)
+    | _ -> (env, k) (* pas de variables locales pour les cas restants *)
 
 and alloc_bloc (env, k) b = match b.b with
     | [] -> (env, k)
@@ -108,7 +111,9 @@ let rec compile_expr env e = match e.e with
             popq (rax) ++
             pushq (ind ~ofs:o rax)
             
-    | Eaccexp ({a= Aid id; la=_}, e) -> (* il faut mettre unit sur la pile, est-ce qu'on construit vraiment un objet unit ??? *)
+    | Eaccexp ({a= Aid id; la=_}, e) -> 
+    (* il faut mettre unit sur la pile ? est-ce qu'on construit vraiment un objet unit ???
+        je pense qu'il vaut mieux mettre le résultat sur la pile mais peut être pas *)
         compile_expr env e ++
             popq (rax) ++
         (try let o = 8*Emap.find id env in
@@ -151,7 +156,9 @@ let rec compile_expr env e = match e.e with
             movq (ilab ("D_"^c)) (reg rbx) ++
         compile_expr env e ++
             popq (r15) ++
+            
             call_star (ind ~ofs:o rbx) ++
+            
             addq (imm (8*List.length le)) (reg rsp) ++
             pushq (reg rax)
     
@@ -221,11 +228,15 @@ let rec compile_expr env e = match e.e with
             popq (rbx) ++
             popq (rax) ++
             movq (ind ~ofs:8 rbx) (reg r13) ++
+            movq (ind ~ofs:8 rax) (reg r14) ++
             (match o.o with
-                | Add -> addq (reg r13) (ind ~ofs:8 rax)
-                | Sub -> subq (reg r13) (ind ~ofs:8 rax)
-                | Mul -> imulq (ind ~ofs:8 rax) (reg r13) ++ movq (reg r13) (ind ~ofs:8 rax)
+                | Add -> addq (reg r13) (reg r14)
+                | Sub -> subq (reg r13) (reg r14)
+                | Mul -> imulq (reg r13) (reg r14)
                 | _ -> failwith "les autres cas sont inutiles") ++
+            pushq (reg r14) ++
+            call "C_Int" ++
+            addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     | Eop (e, o, f) ->
         compile_expr env e ++
@@ -346,6 +357,7 @@ and compile_methode m c =
         subq (imm (-8*taille)) (reg rsp) ++ (* on crée le tableau d'activation qui commence en rsp et se finit en rsp-8(taille-1) *)
         
         compile_expr (List.fold_left (fun e p -> k:=!k + 1; Emap.add p !k e) env (List.map (fun p -> let (id,_) = p.p in id) lp)) e ++
+        popq (rax) ++
         
         movq (reg rbp) (reg rsp) ++ (* on supprime les variables allouées *)
         popq (rbp) ++ (* on restaure rbp *)
@@ -381,9 +393,10 @@ let aux_decl d c c_extends l numc numm = match d.d with
 
 let comp_classe cl =
     let (c,_,lp,t,_,ld) = cl.c in let Typ (c_extends,_) = t.t in
+    thisref:= c;
     let n1, n2 = Omaxmap.find c_extends !omax in
     let numc = ref (n1+1) and numm = ref (n2+1) in 
-    let l = ref (List.append ["D_"^c_extends] (List.tl (Dmap.find c_extends !descr))) in (* on initialise l avec c_extends *)
+    let l = ref (("D_"^c_extends)::(List.tl (Dmap.find c_extends !descr))) in (* on initialise l avec c_extends *)
     Ocmap.iter (fun (s, x) k -> oc:= Ocmap.add (c,x) k !oc) (Ocmap.filter (fun (s, x) k -> s = c_extends) !oc);
     Ommap.iter (fun (s, x) k -> om:= Ommap.add (c,x) k !om) (Ommap.filter (fun (s, x) k -> s = c_extends) !om);
     List.iter (fun p -> aux_param p c c_extends numc) lp;
@@ -409,17 +422,20 @@ let constr_of_class cl =
 (* on a un certains nombre de champs de cl avec leur offset dans !oc.
 il y a des paramètres et des variables *)
     let c = ident_of_class cl and lp = param_of_class cl and ld = dec_of_class cl in
+    thisref:= c;
     let l1 = Ocmap.bindings (Ocmap.filter (fun (s, id) k -> s=c) !oc) in
     let lid = List.sort (fun id1 id2 -> Ocmap.find (c,id1) !oc - Ocmap.find (c,id2) !oc) (List.map (fun ((s,id), k) -> id) l1) in
     let nbc = List.length lid in
     label ("C_"^c) ++
         movq (imm (8*(nbc+1))) (reg rdi) ++
         call "malloc" ++
-        movq (reg rax) (reg r12) ++ (* on met rax dans r12 car la valeur de retour est à mettre dans rax *)
+        pushq (reg rax) ++ (* on empile rax pour le sauvegarder et le redonner à la fin *)
+        movq (reg rax) (reg r12) ++ (* on met rax dans r12 que l'on augmentera petit à petit *)
         movq (ilab ("D_"^c)) (ind (r12)) ++
         List.fold_left (fun code id -> 
                                 code ++
                                 addq (imm 8) (reg r12) ++
+                                pushq (reg r12) ++
                                 (match List.mem id (List.map (fun p -> let (id,_) = p.p in id) lp) with
                                     | true ->
                                         let o = 8*(aux_position id (List.map (fun p -> let (id,_) = p.p in id) lp)) in
@@ -428,8 +444,10 @@ il y a des paramètres et des variables *)
                                         let e = cherche_expr id cl ld in
                                         compile_expr Emap.empty e) ++
                                 popq (rbx) ++
+                                popq (r12) ++
                                 movq (reg rbx) (ind (r12))
                                 ) nop lid ++
+        popq (rax) ++
         ret
 
 let compile_methodes_classe cl =
@@ -447,7 +465,7 @@ let compile_classes lc cM =
 
 
 
-(** Compilation de la classe Main **)
+(** Compilation de la classe Main (inutile) **)
 
 let compile_classe_main cM =
     let cl = {c= ("Main",[],[],{t=Typ("Any",{at= [];lat= l_empty}); lt=l_empty},[],cM.cM);lc= l_empty} in
