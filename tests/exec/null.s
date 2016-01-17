@@ -48,8 +48,7 @@ M_Main_main:
 	pushq %rax
 	popq %rbx
 	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
+	cmpq %rax, %rbx
 	setne %cl
 	movzbq %cl, %rcx
 	pushq %rcx
@@ -83,8 +82,7 @@ L1:
 	pushq -8(%rbp)
 	popq %rbx
 	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
+	cmpq %rax, %rbx
 	setne %cl
 	movzbq %cl, %rcx
 	pushq %rcx
@@ -121,8 +119,7 @@ L4:
 	pushq %rax
 	popq %rbx
 	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
+	cmpq %rax, %rbx
 	sete %cl
 	movzbq %cl, %rcx
 	pushq %rcx
@@ -166,8 +163,7 @@ L7:
 	pushq %rax
 	popq %rbx
 	popq %rax
-	movq 8(%rbx), %r13
-	cmpq 8(%rax), %r13
+	cmpq %rax, %rbx
 	sete %cl
 	movzbq %cl, %rcx
 	pushq %rcx
@@ -201,20 +197,14 @@ L11:
 C_Nothing:
 	pushq %rbp
 	movq %rsp, %rbp
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Nothing, 0(%r12)
+	movq $.SNothing, %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
 C_Null:
 	pushq %rbp
 	movq %rsp, %rbp
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Null, 0(%r12)
+	movq $.SNull, %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -345,6 +335,10 @@ D_Unit:
 	.string "%d"
 .Sprint_string:
 	.string "%s"
+.SNothing:
+	.quad D_Nothing
+.SNull:
+	.quad D_Null
 .S2:
 	.string "oups\n"
 .S5:

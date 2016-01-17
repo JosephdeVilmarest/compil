@@ -93,10 +93,10 @@ let rec compile_expr env e = match e.e with
     
     | Epar e -> compile_expr env e
     
-    | Eacc {a= Aid id; la=_} ->
-        (try let o = 8*Emap.find id env in
+    | Eacc {a= Aid id; la=_} -> 
+        (try let o = 8*Emap.find id env   in 
             pushq (ind ~ofs:o rbp) (* c'est le cas où id est une variable locale, cas le plus simple *)
-        with Not_found -> (* dans ce cas id est le champ de la classe this *)
+        with Not_found ->  (* dans ce cas id est le champ de la classe this *)
             let c = !thisref in
             let o = 8*(Ocmap.find (c, id) !oc) in
             pushq (ind ~ofs:o r15)) (* on mettra dans r15 l'adresse d'un objet avant d'appeler une de ses méthodes *)
@@ -258,6 +258,19 @@ let rec compile_expr env e = match e.e with
             call "C_Int" ++
             addq (imm 8) (reg rsp) ++
             pushq (reg rax)
+    | Eop (e,o,f) when List.mem o.o [Eq;Ne] ->  
+        compile_expr env e ++
+        compile_expr env f ++
+            popq (rbx) ++
+            popq (rax) ++
+            (match o.o with
+                | Ne -> cmpq (reg rax) (reg rbx)  ++ setne (reg cl) ++ movzbq (reg cl) rcx
+                | _ ->  cmpq (reg rax) (reg rbx)  ++ sete (reg cl) ++ movzbq (reg cl) rcx)
+            ++
+            pushq (reg rcx) ++
+            call "C_Boolean" ++
+            addq (imm 8) (reg rsp) ++
+            pushq (reg rax)   
     | Eop (e, o, f) ->
         compile_expr env e ++
         compile_expr env f ++
@@ -268,12 +281,6 @@ let rec compile_expr env e = match e.e with
                 (* il y a peut être un problème sur l'égalité structurelle :
                     Je la teste pareil que l'autre égalité alors qu'il faut 
                     peut être l'utiliser avec les adresses des paramètres ? *)
-                | Eq -> 
-                        cmpq (ind ~ofs:8 rax) (reg r13) ++ 
-                        sete (reg cl) ++ movzbq (reg cl) rcx
-                | Ne -> 
-                        cmpq (ind ~ofs:8 rax) (reg r13) ++ 
-                        setne (reg cl) ++ movzbq (reg cl) rcx
                 | Dbleg ->
                         cmpq (ind ~ofs:8 rax) (reg r13) ++
                         sete (reg cl) ++ movzbq (reg cl) rcx
@@ -523,12 +530,12 @@ let comp fichier =
     (* on s'occupe des classes prédéfinies *)
     label "C_Nothing" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Nothing") (ind (r12)) ++ 
+        movq (ilab ".SNothing") (reg rax) ++ 
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "C_Null" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Null") (ind (r12)) ++
+        movq (ilab ".SNull") (reg rax) ++
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "C_String" ++
@@ -592,5 +599,9 @@ let comp fichier =
 	    Dmap.fold (fun s l code -> code ++ label ("D_"^s) ++ address l) !descr nop ++
     label ".Sprint_int" ++ string "%d" ++
 	label ".Sprint_string" ++ string "%s" ++
+    label ".SNothing" ++
+        address ["D_Nothing"] ++
+    label ".SNull" ++
+        address ["D_Null"] ++
 	    !chaines
 	}

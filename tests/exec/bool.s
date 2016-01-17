@@ -177,20 +177,14 @@ L8:
 C_Nothing:
 	pushq %rbp
 	movq %rsp, %rbp
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Nothing, 0(%r12)
+	movq $.SNothing, %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
 C_Null:
 	pushq %rbp
 	movq %rsp, %rbp
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Null, 0(%r12)
+	movq $.SNull, %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -319,5 +313,9 @@ D_Unit:
 	.string "%d"
 .Sprint_string:
 	.string "%s"
+.SNothing:
+	.quad D_Nothing
+.SNull:
+	.quad D_Null
 .S9:
 	.string "OK\n"
