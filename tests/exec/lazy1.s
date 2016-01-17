@@ -2,7 +2,9 @@
 	.globl	main
 main:
 	call C_Main
+	pushq %rax
 	call M_Main_main
+	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:
@@ -48,7 +50,9 @@ M_Main_main:
 	cmpq 8(%rax), %r13
 	sete %cl
 	movzbq %cl, %rcx
-	movq %rcx, 8(%rax)
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 L4:
@@ -104,7 +108,9 @@ L1:
 	cmpq 8(%rax), %r13
 	sete %cl
 	movzbq %cl, %rcx
-	movq %rcx, 8(%rax)
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 L9:

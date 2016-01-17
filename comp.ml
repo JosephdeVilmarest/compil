@@ -9,7 +9,7 @@ let l_empty = ({pos_fname = ""; pos_lnum = 0; pos_bol = 0; pos_cnum = 0},
 (* une solution pour les chaines de caractères: maintenir une référence mise à nop au début de la fonction comp dans laquelle on met toutes les chaines rencontrées et ainsi à la fin on les met dans le data, on les associe à des entiers. La référence numero sera modifié dès qu'on écrira une chaine ou une étiquette *)
 
 module Omaxmap = Map.Make(String)
-let omax_empty = Omaxmap.add "Nothing" (0, -1) (Omaxmap.add "Null" (0, -1) (Omaxmap.add "String" (0, -1) (Omaxmap.add "AnyRef" (0, -1) (Omaxmap.add "Unit" (0, -1) (Omaxmap.add "Int" (0, -1) (Omaxmap.add "Boolean" (0, -1) (Omaxmap.add "AnyVal" (0, -1) (Omaxmap.add "Any" (0, -1) Omaxmap.empty))))))))
+let omax_empty = Omaxmap.add "Nothing" (0, 0) (Omaxmap.add "Null" (0, 0) (Omaxmap.add "String" (0, 0) (Omaxmap.add "AnyRef" (0, 0) (Omaxmap.add "Unit" (0, 0) (Omaxmap.add "Int" (0, 0) (Omaxmap.add "Boolean" (0, 0) (Omaxmap.add "AnyVal" (0, 0) (Omaxmap.add "Any" (0, 0) Omaxmap.empty))))))))
 
 module Key = struct type t = string * string let compare = Pervasives.compare end
 module Ocmap = Map.Make(Key) (* donne les offset des champs d'une classe *)
@@ -119,7 +119,7 @@ let rec compile_expr env e = match e.e with
     | Eaccargexp ({a= Aid id; la=_}, ar, le) ->
         let c = !thisref in
         let o = 8 * (Ommap.find (c, id) !om) in
-        List.fold_right (fun e code -> compile_expr env e ++ code) le nop ++
+        List.fold_right (fun e code -> code ++ compile_expr env e) le nop ++
             movq (ilab ("D_"^c)) (reg rbx) ++  (* avant je faisais juste un call ("M_"^c^"_"^id) *)
             call_star (ind ~ofs:o rbx) ++
             addq (imm (8*List.length le)) (reg rsp) ++
@@ -127,7 +127,7 @@ let rec compile_expr env e = match e.e with
     | Eaccargexp ({a= Aexpid (e,id); la=_}, ar, le) ->
         let Typ(c,_) = e.te.t in
         let o = 8 * (Ommap.find (c, id) !om) in
-        List.fold_right (fun e code -> compile_expr env e ++ code) le nop ++
+        List.fold_right (fun e code -> code ++ compile_expr env e) le nop ++
             movq (ilab ("D_"^c)) (reg rbx) ++
             call_star (ind ~ofs:o rbx) ++
             addq (imm (8*List.length le)) (reg rsp) ++
@@ -193,9 +193,21 @@ let rec compile_expr env e = match e.e with
         cqto ++ idivq (reg rbx) ++
         movq (reg rdx) (ind ~ofs:8 r13) ++
         pushq (reg r13)
-    | Eop (e, o, f) ->
+    | Eop (e, o, f) when List.mem o.o [Add; Sub; Mul] ->
             compile_expr env e ++
             compile_expr env f ++
+            popq (rbx) ++
+            popq (rax) ++
+            movq (ind ~ofs:8 rbx) (reg r13) ++
+            (match o.o with
+                | Add -> addq (reg r13) (ind ~ofs:8 rax)
+                | Sub -> subq (reg r13) (ind ~ofs:8 rax)
+                | Mul -> imulq (ind ~ofs:8 rax) (reg r13) ++ movq (reg r13) (ind ~ofs:8 rax)
+                | _ -> failwith "les autres cas sont inutiles") ++
+            pushq (reg rax)
+    | Eop (e, o, f) ->
+        compile_expr env e ++
+        compile_expr env f ++
             popq (rbx) ++
             popq (rax) ++
             movq (ind ~ofs:8 rbx) (reg r13) ++
@@ -205,40 +217,32 @@ let rec compile_expr env e = match e.e with
                     peut être l'utiliser avec les adresses des paramètres ? *)
                 | Eq -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
-                        sete (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (ind ~ofs:8 rax)
+                        sete (reg cl) ++ movzbq (reg cl) rcx
                 | Ne -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
-                        setne (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (ind ~ofs:8 rax)
+                        setne (reg cl) ++ movzbq (reg cl) rcx
                 | Dbleg ->
                         cmpq (ind ~ofs:8 rax) (reg r13) ++
-                        sete (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (ind ~ofs:8 rax)
+                        sete (reg cl) ++ movzbq (reg cl) rcx
                 | Diff -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
-                        setne (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (ind ~ofs:8 rax)
+                        setne (reg cl) ++ movzbq (reg cl) rcx
                 | Inf -> 
                         cmpq (reg r13) (ind ~ofs:8 rax) ++ 
-                        sets (reg cl) ++ movzbq (reg cl) rcx ++
-                        movq (reg rcx) (ind ~ofs:8 rax)
+                        sets (reg cl) ++ movzbq (reg cl) rcx
                 | Infeg -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
-                        setns (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (ind ~ofs:8 rax)
+                        setns (reg cl) ++ movzbq (reg cl) rcx
                 | Sup -> 
                         cmpq (ind ~ofs:8 rax) (reg r13) ++ 
-                        sets (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (ind ~ofs:8 rax)
+                        sets (reg cl) ++ movzbq (reg cl) rcx
                 | Supeg -> 
                         cmpq (reg r13) (ind ~ofs:8 rax) ++ 
-                        setns (reg cl) ++ movzbq (reg cl) rcx ++ 
-                        movq (reg rcx) (ind ~ofs:8 rax)
-                | Add -> addq (reg r13) (ind ~ofs:8 rax)
-                | Sub -> subq (reg r13) (ind ~ofs:8 rax)
-                | Mul -> imulq (ind ~ofs:8 rax) (reg r13) ++ movq (reg r13) (ind ~ofs:8 rax)
-                | _ -> failwith "ce cas n'intervient pas") ++
+                        setns (reg cl) ++ movzbq (reg cl) rcx
+                | _ -> failwith "on n'est pas dans un autre cas") ++
+            pushq (reg rcx) ++
+            call "C_Boolean" ++
+            addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     
     | Eif (e, e1, e2) -> 
@@ -268,9 +272,15 @@ let rec compile_expr env e = match e.e with
         label ("L"^s2)
     
     | Ereturnvide -> (* on ne remet rien sur la pile, on se contente de mettre la valeur à retourner dans rax *)
-            movq (imm 0) (reg rax)
+            movq (imm 0) (reg rax) ++
+            movq (reg rbp) (reg rsp) ++
+            popq (rbp) ++
+            ret (* doit-on mettre le ret et les modif re rsp et rbp ? Je pense que oui *)
     | Ereturn e -> 
-            compile_expr env e ++ popq (rax)
+        compile_expr env e ++ popq (rax) ++ 
+            movq (reg rbp) (reg rsp) ++
+            popq (rbp) ++
+            ret
     
     | Eprint e when e.te.t = Typ ("Int", {at= []; lat= l_empty}) -> (* on ne remet rien sur la pile après avoir affiché *)
         compile_expr env e ++
@@ -305,7 +315,7 @@ and compile_methode m c =
         movq (reg rsp) (reg rbp) ++
         subq (imm (-8*taille)) (reg rsp) ++ (* on crée le tableau d'activation qui commence en rsp et se finit en rsp-8(taille-1) *)
         
-        compile_expr (List.fold_left (fun e p -> k:=!k +1; Emap.add p !k e) env (List.map (fun p -> let (id,_) = p.p in id) lp)) e ++
+        compile_expr (List.fold_left (fun e p -> k:=!k + 1; Emap.add p !k e) env (List.map (fun p -> let (id,_) = p.p in id) lp)) e ++
         
         movq (reg rbp) (reg rsp) ++ (* on supprime les variables allouées *)
         popq (rbp) ++ (* on restaure rbp *)
@@ -418,7 +428,9 @@ let comp fichier =
 	    call "C_Main" ++ 
 	    (* dans rax on a l'adresse de l'objet, on peut le mettre dans la pile et le dépiler dans 
 	        M_Main_main si c'est plus facile lors de l'écriture de la compilation des méthodes *)
+	    pushq (reg rax) ++
 	    call "M_Main_main" ++
+	    addq (imm 8) (reg rsp) ++
 	    xorq (reg rax) (reg rax) ++
 	    ret ++
         (* le constructeur de Main sert à stocker les variables définies dans Main avant Main_main *)

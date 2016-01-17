@@ -2,7 +2,9 @@
 	.globl	main
 main:
 	call C_Main
+	pushq %rax
 	call M_Main_main
+	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:

@@ -2,7 +2,9 @@
 	.globl	main
 main:
 	call C_Main
+	pushq %rax
 	call M_Main_main
+	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:
@@ -28,6 +30,9 @@ M_Main_main:
 	call print_string
 	addq $8, %rsp
 	movq $0, %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
 	pushq $.S2
 	call C_String
 	addq $8, %rsp

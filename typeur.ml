@@ -28,7 +28,11 @@ type environnement = {mutable classes: classaug Cmap.t;
 (* ici la localisation est dans le typ *)
 type typ_ret = None | Some of typ
 
+(* module envmap qui a un nom de classe associe l environnment de la classe*)
 
+module Envmap = Map.Make(String)
+
+let envmap = ref Envmap.empty
 
 (**Fonctions Utiles**)
 
@@ -309,7 +313,8 @@ let rec type_expr exp gamma tr =
             let Typ (c,at) = (type_expr e gamma tr).t in
             let (_,lptc,_,_,_,ld) = ((Cmap.find c gamma.classes).classe).c in
             let sigma = sigma_of_listes lptc at.at in
-           (try let t = cherche_dec id gamma.dec in 
+            let ldd = (Envmap.find c (!envmap)).dec in
+           (try let t = cherche_dec id ldd in 
                 substitue sigma t
             with Not_found -> raise
                                    (Typeur_error ("variable non définie",loc)))
@@ -340,7 +345,7 @@ let rec type_expr exp gamma tr =
                                 (Typeur_error ("variable non définie", loca))))
     
     | Eaccexp ({a= Aexpid (e,id); la= loca},e2) -> 
-            let Typ (c,at) = (type_expr e gamma tr).t in
+            let Typ (c,at) = (type_expr e gamma tr).t in 
             let (_,lptc,_,_,_,ld) = ((Cmap.find c gamma.classes).classe).c in
            (try let t1 = cherche_dec_mutable id (List.map (fun d -> d.d) ld) in
                 let t2 = type_expr e2 gamma tr in
@@ -365,11 +370,23 @@ let rec type_expr exp gamma tr =
             let cl = ((Cmap.find c gamma.classes).classe) in
             let (_,lpt,lp,t,e) = cherche_param_meth m cl in
             let lptc = ptc_of_class cl in
-            let sigma = sigma_of_listes lptc at.at and
-            sigma_prime = sigma_of_listes (List.map 
-                          (fun pt -> {ptc= Ptc pt; lptc= pt.lpt}) lpt) at1.at in
-            let flag = ref (subst_bf (List.map 
-                      (fun pt -> {ptc= Ptc pt; lptc= pt.lpt}) lpt) at1 gamma) in
+            let sigma = sigma_of_listes lptc at.at in
+            let lptc2 = (List.map (fun pt -> {ptc= Ptc pt; lptc= pt.lpt}) lpt)
+            in let
+            sigma_prime = sigma_of_listes lptc2 at1.at in
+            let image_composition = {at = List.map (fun ptc -> 
+                        substitue sigma (substitue sigma_prime (t_of_ptc ptc)))
+                                                       lptc2;lat = l_empty} in 
+            let application_sigma_ptc sigm ptc = match ptc.ptc with
+                |Ptc({pt = Ptidoptyp(s,o,t) ;lpt = loc}) -> 
+                   {ptc = Ptc({pt = Ptidoptyp(s,o,substitue sigma t);lpt=loc});
+                                                                lptc = ptc.lptc}
+                |Ptc(_) -> ptc 
+                |_ -> failwith "cas impossible"
+            in
+            let antecedent = 
+                    List.map ( fun x -> application_sigma_ptc sigma x) lptc2 in 
+            let flag = ref (subst_bf antecedent image_composition gamma) in
             flag:= !flag && (subst_bf lptc {at=(List.map 
                 (fun t -> substitue sigma_prime t) at.at); lat= at.lat} gamma);
             List.iter (fun t -> flag:= !flag && (est_bf t gamma)) at1.at;
@@ -384,7 +401,6 @@ let rec type_expr exp gamma tr =
                  (Typeur_error ("pas le bon nombre d'expressions", exp.le))
             in aux le (List.map (fun (s,t) -> t) (List.map (fun p -> p.p) lp));
             if !flag then substitue sigma (substitue sigma_prime t)
-(** ici se trouve le probleme qui me fait bien chier **)
             else raise (Typeur_error ("un des types est mal formé", exp.le))
      
     | Enewidargexp (c,at,le) when (est_bf {t= Typ (c,at); lt= exp.le} gamma) ->
@@ -394,8 +410,8 @@ let rec type_expr exp gamma tr =
             let sigma = sigma_of_listes lptc (at.at) in
             let rec aux ss lar l = match lar, l with
                 | [], [] -> true
-                | t::p, e::q -> (est_sous_type (type_expr e gamma tr) (substitue ss t) 
-                                                              gamma)&&(aux ss p q)
+                | t::p, e::q -> (est_sous_type (type_expr e gamma tr) 
+                                (substitue ss t) gamma)&&(aux ss p q)
                 | _ -> raise 
                      (Typeur_error ("pas le bon nombre d'expressions", exp.le))
             in
@@ -480,14 +496,14 @@ let rec type_expr exp gamma tr =
             else raise (Typeur_error 
                        ("l'expr n'est pas de type un sous-type de tr", exp.le))
     
-    | Eprint e when (type_expr e gamma tr).t = 
-                        Typ ("String",{at= []; lat= l_empty}) ->
+    | Eprint e when (match (type_expr e gamma tr).t with 
+                        Typ ("String",{at= []; lat=_}) -> true |_ -> false) ->
                 {t= Typ("Unit",{at= []; lat= l_empty}); lt= exp.le}
-    | Eprint e when (type_expr e gamma tr).t = 
-                        Typ ("Int",{at= []; lat= l_empty}) -> 
+    | Eprint e when (match (type_expr e gamma tr).t with 
+                        Typ ("Int",{at= []; lat=_}) -> true |_ -> false) -> 
                 {t= Typ("Unit",{at= []; lat= l_empty}); lt= exp.le}
-    | Eprint e -> let str =  match (type_expr e gamma tr).t with Typ(aaa,bbb) -> aaa in raise (Typeur_error (str, e.le)) (**raise (Typeur_error 
-                  ("Eprint attend une expression de type Int ou String", e.le)) **)
+    | Eprint e -> raise (Typeur_error 
+                  ("Eprint attend une expression de type Int ou String", e.le)) 
     
     | Ebloc {b=[]; lb=lb} -> 
             {t= Typ("Unit",{at= []; lat= l_empty}); lt= exp.le}
@@ -506,7 +522,7 @@ let rec type_expr exp gamma tr =
                  if not(est_sous_type tee t gamma) 
                     then raise 
                              (Typeur_error ("l'expr n'a pas le bon type",e.le))
-                 else (**changement !!!**) if (match t.t with 
+                 else if (match t.t with 
                         Typ(ss,tt) when ss = "Any" -> true | _ -> false) then
                       type_expr ({e=Ebloc {b=l; lb=lb}; le=lb; 
                       te={t=Typ ("Unit", {at= []; lat= l_empty}); lt=l_empty}}) 
@@ -517,7 +533,7 @@ let rec type_expr exp gamma tr =
                       te={t=Typ ("Unit", {at= []; lat= l_empty}); lt=l_empty}}) 
                          {classes=gamma.classes; 
                                     dec={dv=(Var (x,t)); ldv=lv}::gamma.dec} tr
-    (** cas des val **)
+    
      | Ebloc {b=({b1=(Bvar {v= (Vval (x,t,e)); lv=lv}); lb1=lb1}::l); lb=lb} -> 
             if not(est_bf t gamma) 
                 then raise (Typeur_error ("type mal formé", t.lt))
@@ -589,47 +605,59 @@ let creation_gamma_prime gamma cl =
 
 (** 2 **)
 
-(* il faut lorsque l'on rajoute les declarations de la classe pere s assurer du changement de parametres de type dans les methodes *)
-(** je change **)
+(* il faut lorsque l'on rajoute les declarations de la classe pere *)
+(* s assurer du changement de parametres de type dans les methodes *)
+
 let rec substitue_dec_t sigma dec = let loc = dec.ld in match dec.d with 
   | Dvar(var) -> {d = Dvar(substitue_var_t sigma var); ld = loc}
-  | Dmethode(methode) -> {d = Dmethode(substitue_methode_t sigma methode); ld = loc}
+  | Dmethode(methode) -> {d = Dmethode(substitue_methode_t sigma methode);
+                                                                 ld = loc}
 and substitue_var_t sigma var = let loc = var.lv in match var.v with
-  | Vvar(str,t,e) -> {v = Vvar(str,substitue_typ_t sigma t,substitue_expr_t sigma e);lv = loc}
-  | Vval(str,t,e) -> {v = Vval(str,substitue_typ_t sigma t,substitue_expr_t sigma e);lv = loc}
-
-and substitue_methode_t sigma methode = let loc = methode.lm in match methode.m with
-  | Moverride(str,pt_li,p_li,t,exp) -> { m = Moverride(str,List.map (fun pt -> substitue_pt_t sigma pt) pt_li,
-                                                        List.map (fun p -> substitue_p_t sigma p) p_li,
-                                        substitue_typ_t sigma t,substitue_expr_t sigma exp);lm = loc}
-  | Mdef(str,pt_li,p_li,t,exp) -> { m = Mdef(str,List.map (fun pt -> substitue_pt_t sigma pt) pt_li,
-                                                        List.map (fun p -> substitue_p_t sigma p) p_li,
-                                        substitue_typ_t sigma t,substitue_expr_t sigma exp);lm = loc}
+  | Vvar(str,t,e) -> {v = Vvar(str,substitue_typ_t sigma t,
+                                       substitue_expr_t sigma e);lv = loc}
+  | Vval(str,t,e) -> {v = Vval(str,substitue_typ_t sigma t,
+                                       substitue_expr_t sigma e);lv = loc}
+and substitue_methode_t sigma methode = let loc = methode.lm in 
+    match methode.m with
+  | Moverride(str,pt_li,p_li,t,exp) -> { m = Moverride(str,List.map 
+                                (fun pt -> substitue_pt_t sigma pt) pt_li,
+                           List.map (fun p -> substitue_p_t sigma p) p_li,
+             substitue_typ_t sigma t,substitue_expr_t sigma exp);lm = loc}
+  | Mdef(str,pt_li,p_li,t,exp) -> { m = Mdef(str,List.map 
+                                (fun pt -> substitue_pt_t sigma pt) pt_li,
+                           List.map (fun p -> substitue_p_t sigma p) p_li,
+             substitue_typ_t sigma t,substitue_expr_t sigma exp);lm = loc}
 and  substitue_p_t sigma p = let loc = p.lp in match p.p with   
     |(str,t) -> { p = (str,substitue_typ_t sigma t);lp = loc} 
 
 and  substitue_pt_t sigma pt = let loc = pt.lpt in match pt.pt with
   | Ptid(str) -> pt
-  | Ptidoptyp(str,o,t) -> {pt = Ptidoptyp(str,o,substitue_typ_t sigma t);lpt = loc}
+  | Ptidoptyp(str,o,t) -> 
+                 {pt = Ptidoptyp(str,o,substitue_typ_t sigma t);lpt = loc}
 and  substitue_typ_t sigma t = match t.t with  
     Typ(a,b) -> if Smap.mem a sigma then Smap.find a sigma 
                 else t
 and  substitue_at_t sigma at = let loc = at.lat in match at.at with  
-    l -> { at = List.map (fun t -> substitue_typ_t sigma t) l; lat = loc}
-and  substitue_expr_t sigma e = let loc = e.le and ttt = substitue_typ_t sigma e.te in match e.e with  
+     l -> { at = List.map (fun t -> substitue_typ_t sigma t) l; lat = loc}
+and  substitue_expr_t sigma e = let loc = e.le and
+                       ttt = substitue_typ_t sigma e.te in match e.e with  
   | Epar(exp) -> {e = Epar(substitue_expr_t sigma exp); le = loc; te = ttt}
   | Eacc(acc) -> {e = Eacc(substitue_acc_t sigma acc); le = loc;te = ttt}
-  | Eaccexp(acc,exp) -> {e = Eaccexp(substitue_acc_t sigma acc,substitue_expr_t 
-                                                        sigma exp); le =loc;te = ttt}
-  | Eaccargexp(acc,at,lle) -> {e = Eaccargexp(substitue_acc_t sigma acc,substitue_at_t sigma at,
-                                List.map (fun ex -> substitue_expr_t sigma ex) lle);le = loc; te = ttt}
+  | Eaccexp(acc,exp) -> {e = Eaccexp(substitue_acc_t sigma acc,
+                            substitue_expr_t sigma exp); le =loc;te = ttt}
+  | Eaccargexp(acc,at,lle) -> {e = Eaccargexp(substitue_acc_t sigma acc,
+                                                  substitue_at_t sigma at,
+       List.map (fun ex -> substitue_expr_t sigma ex) lle);le = loc; te = ttt}
   | Enewidargexp(str,at,lle) -> {e = Enewidargexp(str,substitue_at_t sigma at,
-                                List.map (fun ex -> substitue_expr_t sigma ex) lle);le = loc; te = ttt}
+       List.map (fun ex -> substitue_expr_t sigma ex) lle);le = loc; te = ttt}
   | Eneg(exp) -> {e = Eneg(substitue_expr_t sigma exp); le = loc; te = ttt}
   | Emoins(exp) -> {e = Emoins(substitue_expr_t sigma exp); le = loc; te = ttt}
-  | Eop(exp1,o,exp2) -> {e = Eop(substitue_expr_t sigma exp1,o,substitue_expr_t sigma exp2); le = loc; te = ttt}
-  | Eif(exp1,exp2,exp3) -> {e = Eif(substitue_expr_t sigma exp1,substitue_expr_t sigma exp1,substitue_expr_t sigma exp3); le = loc; te = ttt}
-  | Ewhile(exp1,exp2) -> {e = Ewhile(substitue_expr_t sigma exp1,substitue_expr_t sigma exp2); le = loc; te = ttt}
+  | Eop(exp1,o,exp2) -> {e = Eop(substitue_expr_t sigma exp1,o,substitue_expr_t
+                                               sigma exp2); le = loc; te = ttt}
+  | Eif(exp1,exp2,exp3) -> {e = Eif(substitue_expr_t sigma exp1,substitue_expr_t
+                     sigma exp1,substitue_expr_t sigma exp3); le = loc; te = ttt}
+  | Ewhile(exp1,exp2) -> {e = Ewhile(substitue_expr_t sigma exp1,substitue_expr_t
+                                                 sigma exp2); le = loc; te = ttt}
   | Ereturn(exp) -> {e = Ereturn(substitue_expr_t sigma exp); le = loc; te = ttt} 
   | Eprint(exp) -> {e = Eprint(substitue_expr_t sigma exp); le = loc; te= ttt}
   | Ebloc(bll) -> {e = Ebloc(substitue_bloc_t sigma bll); le = loc; te = ttt}
@@ -890,7 +918,7 @@ let comparaison_parametres_methodes m m0 gamma_prime2 =
 	let rec aux = function
 		| [],[] -> ()
 		| (s,ty)::q, (s0,ty0)::q0 -> 
-		        if not(s = s0) || not((substitue sigma ty).t = ty0.t)
+		        if  not((substitue sigma ty).t = ty0.t)
 					then raise (Typeur_error
 ("override: les parametres n'ont pas le meme type que dans la super-méthode", 
                                                                          m.lm))
@@ -910,10 +938,10 @@ let comparaison_bornes_methodes m m0 =
 		            then raise 
 		                (Typeur_error 
 		                  ("override: les bornes ne sont pas les memes", m.lm))
-		        else ()
-		| _ -> raise 
-		            (Typeur_error 
-		               ("override: les param_typ n'ont pas meme nature", m.lm))
+		        else aux (q,q0)
+		| aaa::q,ccc::q0 -> aux (q,q0) 
+        | _ -> raise (Typeur_error("Il n'y a pas le même nommbre de
+                                         parametres de types",m.lm)) 
 	in aux (List.map (fun pt -> pt.pt) l, List.map (fun pt -> pt.pt) l0) 
 
 (* verifie que l override est correctement utilise *)
@@ -954,11 +982,12 @@ let verif_dec cl gamma_prime =
 
 let ajoute_cl_env cl gamma = 
 	let gamma_prime = creation_gamma_prime gamma cl in 
-	begin
+    begin
+    envmap := Envmap.add (ident_of_class cl) gamma_prime (!envmap);
 	rajoute_classe_env gamma gamma_prime cl;
 	ajout_decl_variables gamma_prime cl;
 	verification_constructeur gamma_prime cl;
-	verif_dec cl gamma_prime;
+	verif_dec cl gamma_prime
 	end; gamma
 
 
@@ -976,8 +1005,10 @@ let cree_main classe_main = {c= ("Main", [],[],{t= Typ("AnyRef",{at= [];
 
 let est_present_param_important = function
     |[] -> false
-    |p::q -> let (s,t) = p.p in (match t with |{t= Typ("Array",
-		    {at= [{t= Typ("String",_); lt= _}]; lat= _}); lt= _} -> true |_  -> false)
+    |p::q -> let (s,t) = p.p in (match t with 
+           |{t= Typ("Array",{at= [{t= Typ("String",_); lt= _}]; lat= _}); lt= _}
+                                                                         -> true
+           |_  -> false)
   
 let vm classe_main = 
 	let rec aux = function

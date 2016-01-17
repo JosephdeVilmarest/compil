@@ -6,6 +6,8 @@ main.cmo: x86_64.cmo typeur.cmo parser.cmi lexer.cmo comp.cmo
 main.cmx: x86_64.cmx typeur.cmx parser.cmx lexer.cmx comp.cmx
 parser.cmo: ast.cmi parser.cmi
 parser.cmx: ast.cmi parser.cmi
+typeur(12).cmo: ast.cmi
+typeur(12).cmx: ast.cmi
 typeur.cmo: ast.cmi
 typeur.cmx: ast.cmi
 x86_64.cmo:

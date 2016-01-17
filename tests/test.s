@@ -2,7 +2,9 @@
 	.globl	main
 main:
 	call C_Main
+	pushq %rax
 	call M_Main_main
+	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:
@@ -11,28 +13,163 @@ C_Main:
 	movq %rax, %r12
 	movq $D_Main, 0(%r12)
 	ret
-M_Main_m:
-	pushq %rbp
-	movq %rsp, %rbp
-	subq $0, %rsp
-	pushq 16(%rbp)
-	call print_string
-	addq $8, %rsp
-	movq %rbp, %rsp
-	popq %rbp
+C_Power:
+	movq $8, %rdi
+	call malloc
+	movq %rax, %r12
+	movq $D_Power, 0(%r12)
 	ret
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $0, %rsp
-	pushq $.S0
-	call C_String
+	subq $8, %rsp
+	call C_Power
+	pushq %rax
+	popq %rax
+	movq %rax, 0(%rbp)
+	pushq $4
+	call C_Int
 	addq $8, %rsp
 	pushq %rax
-	movq $D_Main, %rbx
-	call *0(%rbx)
+	pushq $2
+	call C_Int
 	addq $8, %rsp
 	pushq %rax
+	movq $D_Power, %rbx
+	call *8(%rbx)
+	addq $16, %rsp
+	pushq %rax
+	call print_int
+	addq $8, %rsp
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_Power_power:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $8, %rsp
+	pushq 24(%rbp)
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	cmpq 8(%rax), %r13
+	setns %cl
+	movzbq %cl, %rcx
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L0
+	
+	pushq $1
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+L0:
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	
+L1:
+	pushq 24(%rbp)
+	pushq $2
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %r14
+	popq %r13
+	movq 8(%r13), %rax
+	movq 8(%r14), %rbx
+	cqto
+	idivq %rbx
+	movq %rax, 8(%r13)
+	pushq %r13
+	pushq 16(%rbp)
+	movq $D_Power, %rbx
+	call *8(%rbx)
+	addq $16, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, 0(%rbp)
+	pushq 0(%rbp)
+	pushq 0(%rbp)
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	imulq 8(%rax), %r13
+	movq %r13, 8(%rax)
+	pushq %rax
+	popq %rax
+	movq %rax, 0(%rbp)
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq 24(%rbp)
+	pushq $2
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %r14
+	popq %r13
+	movq 8(%r13), %rax
+	movq 8(%r14), %rbx
+	cqto
+	idivq %rbx
+	movq %rdx, 8(%r13)
+	pushq %r13
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	cmpq 8(%rax), %r13
+	setne %cl
+	movzbq %cl, %rcx
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L2
+	pushq 0(%rbp)
+	pushq 16(%rbp)
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	imulq 8(%rax), %r13
+	movq %r13, 8(%rax)
+	pushq %rax
+	popq %rax
+	movq %rax, 0(%rbp)
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	jmp L3
+L2:
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+L3:
+	pushq 0(%rbp)
+	popq %rax
+	
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -168,11 +305,13 @@ D_Boolean:
 D_Int:
 	.quad D_AnyVal
 D_Main:
-	.quad D_Any, M_Main_m, M_Main_main
+	.quad D_Any, M_Main_main
 D_Nothing:
 	.quad D_Null
 D_Null:
 	.quad D_String
+D_Power:
+	.quad D_AnyRef, M_Power_power
 D_String:
 	.quad D_AnyRef
 D_Unit:
@@ -181,5 +320,3 @@ D_Unit:
 	.string "%d"
 .Sprint_string:
 	.string "%s"
-.S0:
-	.string "hello, world !"

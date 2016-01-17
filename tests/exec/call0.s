@@ -2,7 +2,9 @@
 	.globl	main
 main:
 	call C_Main
+	pushq %rax
 	call M_Main_main
+	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:
@@ -30,7 +32,7 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Main, %rbx
-	call *0(%rbx)
+	call *8(%rbx)
 	addq $8, %rsp
 	pushq %rax
 	pushq $.S1
@@ -38,7 +40,7 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Main, %rbx
-	call *0(%rbx)
+	call *8(%rbx)
 	addq $8, %rsp
 	pushq %rax
 	movq %rbp, %rsp

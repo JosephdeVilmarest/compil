@@ -1,8 +1,18 @@
+class Power {
+  def power(a: Int, n: Int) : Int = {
+    if (n <= 0)
+      return 1;
+    var r = power(a, n / 2);
+    r = r * r;
+    if (n % 2 != 0)
+      r = r * a;
+    return r
+  }
+}
+
 object Main {
-
-  def m(s: String) { print(s) };
-
   def main(args: Array[String]) {
-    m("hello, world !")
+    var p = new Power();
+    print(p.power(2, 4))
   }
 }

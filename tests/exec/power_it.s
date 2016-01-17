@@ -2,7 +2,9 @@
 	.globl	main
 main:
 	call C_Main
+	pushq %rax
 	call M_Main_main
+	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:
@@ -25,16 +27,16 @@ M_Main_main:
 	pushq %rax
 	popq %rax
 	movq %rax, 0(%rbp)
-	pushq $2
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
 	pushq $4
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
+	pushq $2
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	movq $D_Power, %rbx
-	call *0(%rbx)
+	call *8(%rbx)
 	addq $16, %rsp
 	pushq %rax
 	call print_int
@@ -45,16 +47,16 @@ M_Main_main:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
-	pushq $6
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
 	pushq $3
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
+	pushq $6
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
 	movq $D_Power, %rbx
-	call *0(%rbx)
+	call *8(%rbx)
 	addq $16, %rsp
 	pushq %rax
 	call print_int
@@ -96,7 +98,9 @@ L2:
 	cmpq 8(%rax), %r13
 	sets %cl
 	movzbq %cl, %rcx
-	movq %rcx, 8(%rax)
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 	movq 8(%rax), %rbx
@@ -125,7 +129,9 @@ L2:
 	cmpq 8(%rax), %r13
 	setne %cl
 	movzbq %cl, %rcx
-	movq %rcx, 8(%rax)
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
 	pushq %rax
 	popq %rax
 	cmpq $0, 8(%rax)
