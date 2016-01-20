@@ -21,26 +21,43 @@ C_Main:
 	movq %rbp, %rsp
 	popq %rbp
 	ret
-C_A:
+C_Job:
 	pushq %rbp
 	movq %rsp, %rbp
-	movq $16, %rdi
+	movq $8, %rdi
 	call malloc
 	pushq %r15
 	movq %rax, %r15
 	pushq %rax
 	movq %rax, %r12
-	movq $D_A, 0(%r12)
+	movq $D_Job, 0(%r12)
+	popq %rax
+	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_Knot:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $24, %rdi
+	call malloc
+	pushq %r15
+	movq %rax, %r15
+	pushq %rax
+	movq %rax, %r12
+	movq $D_Knot, 0(%r12)
 	addq $8, %r12
 	pushq %r12
-	pushq $.S0
-	call C_String
-	addq $8, %rsp
+	call C_Job
+	addq $0, %rsp
 	pushq %rax
-	call print_string
-	addq $8, %rsp
-	pushq $0
-	call C_Unit
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $1
+	call C_Int
 	addq $8, %rsp
 	pushq %rax
 	popq %rbx
@@ -54,12 +71,137 @@ C_A:
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	addq $-8, %rsp
-	call C_A
+	addq $0, %rsp
+	pushq $10
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	movq $D_Job, %rbx
+	movq %r15, %r9
+	movq $D_Knot, %rbx
+	movq %r15, %r9
+	call C_Knot
 	addq $0, %rsp
 	pushq %rax
+	popq %r15
+	call *24(%rbx)
+	movq %r9, %r15
+	addq $0, %rsp
+	pushq %rax
+	popq %r15
+	call *8(%rbx)
+	movq %r9, %r15
+	addq $8, %rsp
+	pushq %rax
 	popq %rax
-	movq %rax, -8(%rbp)
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_Job_work:
+	pushq %rbp
+	movq %rsp, %rbp
+	addq $0, %rsp
+	popq %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_Knot_knot:
+	pushq %rbp
+	movq %rsp, %rbp
+	addq $0, %rsp
+	pushq %r15
+	popq %rax
+	movq %rax, 16(%r15)
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq 16(%r15)
+	popq %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_Knot_work:
+	pushq %rbp
+	movq %rsp, %rbp
+	addq $0, %rsp
+	pushq 16(%rbp)
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	cmpq 8(%rax), %r13
+	sete %cl
+	movzbq %cl, %rcx
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L0
+	pushq 24(%r15)
+	call print_int
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq $.S2
+	call C_String
+	addq $8, %rsp
+	pushq %rax
+	call print_string
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	jmp L1
+L0:
+	pushq 24(%r15)
+	pushq 16(%rbp)
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	movq 8(%rax), %r14
+	imulq %r13, %r14
+	pushq %r14
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, 24(%r15)
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq 16(%rbp)
+	pushq $1
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	movq 8(%rax), %r14
+	subq %r13, %r14
+	pushq %r14
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	movq $D_Job, %rbx
+	movq %r15, %r9
+	pushq 16(%r15)
+	popq %r15
+	call *8(%rbx)
+	movq %r9, %r15
+	addq $8, %rsp
+	pushq %rax
+L1:
 	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
@@ -179,8 +321,6 @@ print_string:
 	popq %rbp
 	ret
 .data
-D_A:
-	.quad D_AnyRef
 D_Any:
 	.quad D_Any
 D_AnyRef:
@@ -191,6 +331,10 @@ D_Boolean:
 	.quad D_AnyVal
 D_Int:
 	.quad D_AnyVal
+D_Job:
+	.quad D_AnyRef, M_Job_work
+D_Knot:
+	.quad D_Job, M_Knot_work, M_Knot_knot
 D_Main:
 	.quad D_Any, M_Main_main
 D_Nothing:
@@ -209,5 +353,5 @@ D_Unit:
 	.quad D_Nothing
 .SNull:
 	.quad D_Null
-.S0:
-	.string "new A\n"
+.S2:
+	.string "\n"

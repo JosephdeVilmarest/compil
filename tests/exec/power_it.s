@@ -2,12 +2,13 @@
 	.globl	main
 main:
 	call C_Main
-	pushq %rax
+	movq %rax, %r15
 	call M_Main_main
-	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	pushq %r15
@@ -17,8 +18,12 @@ C_Main:
 	movq $D_Main, 0(%r12)
 	popq %rax
 	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_Power:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	pushq %r15
@@ -28,11 +33,13 @@ C_Power:
 	movq $D_Power, 0(%r12)
 	popq %rax
 	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $8, %rsp
+	addq $-8, %rsp
 	call C_Power
 	addq $0, %rsp
 	pushq %rax
@@ -47,8 +54,8 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Power, %rbx
-	pushq -8(%rbp)
 	movq %r15, %r9
+	pushq -8(%rbp)
 	popq %r15
 	call *8(%rbx)
 	movq %r9, %r15
@@ -79,8 +86,8 @@ M_Main_main:
 	addq $8, %rsp
 	pushq %rax
 	movq $D_Power, %rbx
-	pushq -8(%rbp)
 	movq %r15, %r9
+	pushq -8(%rbp)
 	popq %r15
 	call *8(%rbx)
 	movq %r9, %r15
@@ -109,7 +116,7 @@ M_Main_main:
 M_Power_power:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $24, %rsp
+	addq $-24, %rsp
 	pushq $1
 	call C_Int
 	addq $8, %rsp

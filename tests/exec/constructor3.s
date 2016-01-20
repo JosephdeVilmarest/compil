@@ -33,12 +33,45 @@ C_A:
 	movq $D_A, 0(%r12)
 	addq $8, %r12
 	pushq %r12
-	pushq $.S0
-	call C_String
+	pushq $1
+	call C_Int
 	addq $8, %rsp
 	pushq %rax
-	call print_string
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	popq %rax
+	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_B:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $24, %rdi
+	call malloc
+	pushq %r15
+	movq %rax, %r15
+	pushq %rax
+	movq %rax, %r12
+	movq $D_B, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $1
+	call C_Int
 	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $2
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, 8(%r15)
 	pushq $0
 	call C_Unit
 	addq $8, %rsp
@@ -54,12 +87,77 @@ C_A:
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	addq $-8, %rsp
+	addq $-24, %rsp
 	call C_A
 	addq $0, %rsp
 	pushq %rax
 	popq %rax
 	movq %rax, -8(%rbp)
+	pushq -8(%rbp)
+	popq %rax
+	pushq 8(%rax)
+	call print_int
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq $.S0
+	call C_String
+	addq $8, %rsp
+	pushq %rax
+	call print_string
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	call C_B
+	addq $0, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, -16(%rbp)
+	pushq -16(%rbp)
+	popq %rax
+	pushq 8(%rax)
+	call print_int
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq $.S1
+	call C_String
+	addq $8, %rsp
+	pushq %rax
+	call print_string
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq -16(%rbp)
+	popq %rax
+	movq %rax, -24(%rbp)
+	pushq -24(%rbp)
+	popq %rax
+	pushq 8(%rax)
+	call print_int
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq $.S2
+	call C_String
+	addq $8, %rsp
+	pushq %rax
+	call print_string
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
 	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
@@ -187,6 +285,8 @@ D_AnyRef:
 	.quad D_Any
 D_AnyVal:
 	.quad D_Any
+D_B:
+	.quad D_A
 D_Boolean:
 	.quad D_AnyVal
 D_Int:
@@ -210,4 +310,8 @@ D_Unit:
 .SNull:
 	.quad D_Null
 .S0:
-	.string "new A\n"
+	.string "\n"
+.S1:
+	.string "\n"
+.S2:
+	.string "\n"

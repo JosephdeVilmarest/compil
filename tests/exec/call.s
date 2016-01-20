@@ -33,14 +33,8 @@ C_A:
 	movq $D_A, 0(%r12)
 	addq $8, %r12
 	pushq %r12
-	pushq $.S0
-	call C_String
-	addq $8, %rsp
-	pushq %rax
-	call print_string
-	addq $8, %rsp
 	pushq $0
-	call C_Unit
+	call C_Null
 	addq $8, %rsp
 	pushq %rax
 	popq %rbx
@@ -60,6 +54,66 @@ M_Main_main:
 	pushq %rax
 	popq %rax
 	movq %rax, -8(%rbp)
+	pushq $.S0
+	call C_String
+	addq $8, %rsp
+	pushq %rax
+	movq $D_A, %rbx
+	movq %r15, %r9
+	pushq -8(%rbp)
+	popq %r15
+	call *8(%rbx)
+	movq %r9, %r15
+	addq $8, %rsp
+	pushq %rax
+	movq $D_A, %rbx
+	movq %r15, %r9
+	pushq -8(%rbp)
+	popq %r15
+	call *16(%rbx)
+	movq %r9, %r15
+	addq $0, %rsp
+	pushq %rax
+	call print_string
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	pushq $.S1
+	call C_String
+	addq $8, %rsp
+	pushq %rax
+	call print_string
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_A_set:
+	pushq %rbp
+	movq %rsp, %rbp
+	addq $0, %rsp
+	pushq 16(%rbp)
+	popq %rax
+	movq %rax, 8(%r15)
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_A_get:
+	pushq %rbp
+	movq %rsp, %rbp
+	addq $0, %rsp
+	pushq 8(%r15)
 	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
@@ -180,7 +234,7 @@ print_string:
 	ret
 .data
 D_A:
-	.quad D_AnyRef
+	.quad D_AnyRef, M_A_set, M_A_get
 D_Any:
 	.quad D_Any
 D_AnyRef:
@@ -210,4 +264,6 @@ D_Unit:
 .SNull:
 	.quad D_Null
 .S0:
-	.string "new A\n"
+	.string "hello"
+.S1:
+	.string ", world!\n"

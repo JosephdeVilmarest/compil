@@ -21,40 +21,143 @@ C_Main:
 	movq %rbp, %rsp
 	popq %rbp
 	ret
-M_Main_main:
+C_Vehicle:
 	pushq %rbp
 	movq %rsp, %rbp
-	addq $0, %rsp
-	pushq $1
+	movq $24, %rdi
+	call malloc
+	pushq %r15
+	movq %rax, %r15
+	pushq %rax
+	movq %rax, %r12
+	movq $D_Vehicle, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $10
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq 8(%r15)
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	popq %rax
+	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_Car:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $32, %rdi
+	call malloc
+	pushq %r15
+	movq %rax, %r15
+	pushq %rax
+	movq %rax, %r12
+	movq $D_Car, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $10
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq 8(%r15)
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	popq %rax
+	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+C_Truck:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $32, %rdi
+	call malloc
+	pushq %r15
+	movq %rax, %r15
+	pushq %rax
+	movq %rax, %r12
+	movq $D_Truck, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $10
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq 8(%r15)
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $0
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	popq %rax
+	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_Main_main:
+	pushq %rbp
+	movq %rsp, %rbp
+	addq $-24, %rsp
+	call C_Truck
+	addq $0, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, -8(%rbp)
+	call C_Car
+	addq $0, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, -16(%rbp)
+	pushq -16(%rbp)
 	pushq $2
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
-	pushq $3
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
 	popq %rbx
 	popq %rax
-	movq 8(%rbx), %r13
-	movq 8(%rax), %r14
-	imulq %r13, %r14
-	pushq %r14
-	call C_Int
+	movq %rbx, 32(%rax)
+	pushq $0
+	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	popq %rbx
+	pushq -16(%rbp)
 	popq %rax
-	movq 8(%rbx), %r13
-	movq 8(%rax), %r14
-	addq %r13, %r14
-	pushq %r14
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
+	pushq 16(%rax)
 	call print_int
 	addq $8, %rsp
 	pushq $0
@@ -71,29 +174,21 @@ M_Main_main:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	pushq $2
+	pushq $60
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
+	movq $D_Car, %rbx
+	movq %r15, %r9
+	pushq -16(%rbp)
+	popq %r15
+	call *8(%rbx)
+	movq %r9, %r15
+	addq $8, %rsp
+	pushq %rax
+	pushq -16(%rbp)
 	popq %rax
-	pushq 8(%rax)
-	call C_Int
-	addq $8, %rsp
-	negq 8(%rax)
-	pushq %rax
-	pushq $3
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	movq 8(%rax), %r14
-	imulq %r13, %r14
-	pushq %r14
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
+	pushq 16(%rax)
 	call print_int
 	addq $8, %rsp
 	pushq $0
@@ -110,49 +205,24 @@ M_Main_main:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	pushq $2
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	pushq $3
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
+	pushq -16(%rbp)
 	popq %rax
-	movq 8(%rbx), %r13
-	movq 8(%rax), %r14
-	imulq %r13, %r14
-	pushq %r14
+	movq %rax, -24(%rbp)
+	pushq $70
 	call C_Int
 	addq $8, %rsp
 	pushq %rax
-	pushq $4
-	call C_Int
+	movq $D_Vehicle, %rbx
+	movq %r15, %r9
+	pushq -24(%rbp)
+	popq %r15
+	call *8(%rbx)
+	movq %r9, %r15
 	addq $8, %rsp
 	pushq %rax
-	pushq $7
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
+	pushq -16(%rbp)
 	popq %rax
-	movq 8(%rbx), %r13
-	movq 8(%rax), %r14
-	imulq %r13, %r14
-	pushq %r14
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	movq 8(%rax), %r14
-	addq %r13, %r14
-	pushq %r14
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
+	pushq 16(%rax)
 	call print_int
 	addq $8, %rsp
 	pushq $0
@@ -169,38 +239,18 @@ M_Main_main:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	pushq $7
-	call C_Int
+	pushq -8(%rbp)
+	movq $D_Car, %rbx
+	movq %r15, %r9
+	pushq -16(%rbp)
+	popq %r15
+	call *24(%rbx)
+	movq %r9, %r15
 	addq $8, %rsp
 	pushq %rax
-	pushq $1
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %r14
-	popq %r13
-	movq 8(%r13), %rax
-	movq 8(%r14), %rbx
-	cqto
-	idivq %rbx
-	pushq %rax
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	pushq $2
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %r14
-	popq %r13
-	movq 8(%r13), %rax
-	movq 8(%r14), %rbx
-	cqto
-	idivq %rbx
-	pushq %rax
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
+	pushq -8(%rbp)
+	popq %rax
+	pushq 16(%rax)
 	call print_int
 	addq $8, %rsp
 	pushq $0
@@ -217,48 +267,9 @@ M_Main_main:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
-	pushq $2
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	pushq $3
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
+	pushq -16(%rbp)
 	popq %rax
-	pushq 8(%rax)
-	call C_Int
-	addq $8, %rsp
-	negq 8(%rax)
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	movq 8(%rax), %r14
-	imulq %r13, %r14
-	pushq %r14
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	pushq $4
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %rax
-	pushq 8(%rax)
-	call C_Int
-	addq $8, %rsp
-	negq 8(%rax)
-	pushq %rax
-	popq %rbx
-	popq %rax
-	movq 8(%rbx), %r13
-	movq 8(%rax), %r14
-	imulq %r13, %r14
-	pushq %r14
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
+	pushq 16(%rax)
 	call print_int
 	addq $8, %rsp
 	pushq $0
@@ -271,6 +282,138 @@ M_Main_main:
 	pushq %rax
 	call print_string
 	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_Vehicle_move:
+	pushq %rbp
+	movq %rsp, %rbp
+	addq $0, %rsp
+	pushq 16(%r15)
+	pushq 16(%rbp)
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	movq 8(%rax), %r14
+	addq %r13, %r14
+	pushq %r14
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, 16(%r15)
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_Car_await:
+	pushq %rbp
+	movq %rsp, %rbp
+	addq $0, %rsp
+	pushq 16(%rbp)
+	popq %rax
+	pushq 16(%rax)
+	pushq 16(%r15)
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	cmpq %r13, 8(%rax)
+	sets %cl
+	movzbq %cl, %rcx
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L5
+	pushq 16(%r15)
+	pushq 16(%rbp)
+	popq %rax
+	pushq 16(%rax)
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	movq 8(%rax), %r14
+	subq %r13, %r14
+	pushq %r14
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	movq $D_Vehicle, %rbx
+	movq %r15, %r9
+	pushq 16(%rbp)
+	popq %r15
+	call *8(%rbx)
+	movq %r9, %r15
+	addq $8, %rsp
+	pushq %rax
+	jmp L6
+L5:
+	pushq $10
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	movq $D_Car, %rbx
+	call *8(%rbx)
+	addq $8, %rsp
+	pushq %rax
+L6:
+	popq %rax
+	movq %rbp, %rsp
+	popq %rbp
+	ret
+M_Truck_move:
+	pushq %rbp
+	movq %rsp, %rbp
+	addq $0, %rsp
+	pushq 16(%rbp)
+	pushq $55
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	cmpq 8(%rax), %r13
+	setns %cl
+	movzbq %cl, %rcx
+	pushq %rcx
+	call C_Boolean
+	addq $8, %rsp
+	pushq %rax
+	popq %rax
+	cmpq $0, 8(%rax)
+	je L7
+	pushq 16(%r15)
+	pushq 16(%rbp)
+	popq %rbx
+	popq %rax
+	movq 8(%rbx), %r13
+	movq 8(%rax), %r14
+	addq %r13, %r14
+	pushq %r14
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	jmp L8
+L7:
+	pushq $55
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+L8:
+	popq %rax
+	movq %rax, 16(%r15)
 	pushq $0
 	call C_Unit
 	addq $8, %rsp
@@ -402,6 +545,8 @@ D_AnyVal:
 	.quad D_Any
 D_Boolean:
 	.quad D_AnyVal
+D_Car:
+	.quad D_Vehicle, M_Vehicle_move, M_Car_await
 D_Int:
 	.quad D_AnyVal
 D_Main:
@@ -412,8 +557,12 @@ D_Null:
 	.quad D_String
 D_String:
 	.quad D_AnyRef
+D_Truck:
+	.quad D_Vehicle, M_Truck_move
 D_Unit:
 	.quad D_AnyVal
+D_Vehicle:
+	.quad D_AnyRef, M_Vehicle_move
 .Sprint_int:
 	.string "%d"
 .Sprint_string:

@@ -1,3 +1,3 @@
 
 class C() { var x : AnyVal = {} }
-object Main { }
+object Main { def main(args: Array[String]) { } }

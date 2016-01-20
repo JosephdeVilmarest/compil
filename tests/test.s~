@@ -2,90 +2,86 @@
 	.globl	main
 main:
 	call C_Main
-	pushq %rax
+	movq %rax, %r15
 	call M_Main_main
-	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
+	pushq %r15
+	movq %rax, %r15
 	pushq %rax
 	movq %rax, %r12
 	movq $D_Main, 0(%r12)
 	popq %rax
+	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_A:
-	movq $16, %rdi
-	call malloc
-	pushq %rax
-	movq %rax, %r12
-	movq $D_A, 0(%r12)
-	addq $8, %r12
-	pushq %r12
-	pushq $1
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	popq %rbx
-	popq %r12
-	movq %rbx, 0(%r12)
-	popq %rax
-	ret
-C_B:
+	pushq %rbp
+	movq %rsp, %rbp
+	
 	movq $24, %rdi
 	call malloc
-	pushq %rax
+	pushq %r15
+	movq %rax, %r15
+    pushq %rax
+    
+    
 	movq %rax, %r12
-	
-	movq $D_B, 0(%r12)
+	movq $D_A, 0(%r12)
 	
 	addq $8, %r12
 	pushq %r12
-	pushq $1
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
+	pushq 16(%rbp)
 	popq %rbx
 	popq %r12
 	movq %rbx, 0(%r12)
 	
 	addq $8, %r12
 	pushq %r12
-	
-	pushq $2
-	call C_Int
-	addq $8, %rsp
-	pushq %rax
-	
-	popq %rax
-	movq %rax, 8(%r15)
-	
-	pushq $0
-	call C_Unit
-	addq $8, %rsp
-	pushq %rax
-	
+	pushq 16(%rbp)
 	popq %rbx
 	popq %r12
 	movq %rbx, 0(%r12)
 	
+	
 	popq %rax
+	popq %r15
+	
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
 	subq $8, %rsp
 	
-	call C_B
+	pushq $1
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	
+	pushq $2
+	call C_Int
+	addq $8, %rsp
+	pushq %rax
+	
+	call C_A
+	addq $16, %rsp
+	
 	pushq %rax
 	popq %rax
 	movq %rax, -8(%rbp)
-	movq -8(%rbp), %r15
+	
 	pushq -8(%rbp)
 	popq %rax
-	pushq 8(%rax)
 	
+	pushq 8(%rax)
 	call print_int
 	addq $8, %rsp
 	
@@ -93,6 +89,7 @@ M_Main_main:
 	call C_Unit
 	addq $8, %rsp
 	pushq %rax
+	
 	popq %rax
 	
 	movq %rbp, %rsp
@@ -101,20 +98,14 @@ M_Main_main:
 C_Nothing:
 	pushq %rbp
 	movq %rsp, %rbp
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Nothing, 0(%r12)
+	movq $.SNothing, %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
 C_Null:
 	pushq %rbp
 	movq %rsp, %rbp
-	movq $8, %rdi
-	call malloc
-	movq %rax, %r12
-	movq $D_Null, 0(%r12)
+	movq $.SNull, %rax
 	movq %rbp, %rsp
 	popq %rbp
 	ret
@@ -227,8 +218,6 @@ D_AnyRef:
 	.quad D_Any
 D_AnyVal:
 	.quad D_Any
-D_B:
-	.quad D_A
 D_Boolean:
 	.quad D_AnyVal
 D_Int:
@@ -247,3 +236,7 @@ D_Unit:
 	.string "%d"
 .Sprint_string:
 	.string "%s"
+.SNothing:
+	.quad D_Nothing
+.SNull:
+	.quad D_Null

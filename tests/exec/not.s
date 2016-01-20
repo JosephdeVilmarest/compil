@@ -2,12 +2,13 @@
 	.globl	main
 main:
 	call C_Main
-	pushq %rax
+	movq %rax, %r15
 	call M_Main_main
-	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	pushq %r15
@@ -17,11 +18,13 @@ C_Main:
 	movq $D_Main, 0(%r12)
 	popq %rax
 	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 M_Main_print_bool:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $0, %rsp
+	addq $0, %rsp
 	pushq 16(%rbp)
 	popq %rax
 	cmpq $0, 8(%rax)
@@ -60,7 +63,7 @@ L1:
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $0, %rsp
+	addq $0, %rsp
 	pushq $1
 	call C_Boolean
 	addq $8, %rsp

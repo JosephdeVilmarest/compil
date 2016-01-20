@@ -2,12 +2,13 @@
 	.globl	main
 main:
 	call C_Main
-	pushq %rax
+	movq %rax, %r15
 	call M_Main_main
-	addq $8, %rsp
 	xorq %rax, %rax
 	ret
 C_Main:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	pushq %r15
@@ -17,8 +18,12 @@ C_Main:
 	movq $D_Main, 0(%r12)
 	popq %rax
 	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_A:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	pushq %r15
@@ -28,8 +33,12 @@ C_A:
 	movq $D_A, 0(%r12)
 	popq %rax
 	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 C_B:
+	pushq %rbp
+	movq %rsp, %rbp
 	movq $8, %rdi
 	call malloc
 	pushq %r15
@@ -39,11 +48,13 @@ C_B:
 	movq $D_B, 0(%r12)
 	popq %rax
 	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
 	ret
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $24, %rsp
+	addq $-24, %rsp
 	call C_A
 	addq $0, %rsp
 	pushq %rax
@@ -55,16 +66,16 @@ M_Main_main:
 	popq %rax
 	movq %rax, -16(%rbp)
 	movq $D_A, %rbx
-	pushq -8(%rbp)
 	movq %r15, %r9
+	pushq -8(%rbp)
 	popq %r15
 	call *8(%rbx)
 	movq %r9, %r15
 	addq $0, %rsp
 	pushq %rax
 	movq $D_B, %rbx
-	pushq -16(%rbp)
 	movq %r15, %r9
+	pushq -16(%rbp)
 	popq %r15
 	call *8(%rbx)
 	movq %r9, %r15
@@ -74,8 +85,8 @@ M_Main_main:
 	popq %rax
 	movq %rax, -24(%rbp)
 	movq $D_A, %rbx
-	pushq -24(%rbp)
 	movq %r15, %r9
+	pushq -24(%rbp)
 	popq %r15
 	call *8(%rbx)
 	movq %r9, %r15
@@ -88,7 +99,7 @@ M_Main_main:
 M_A_f:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $0, %rsp
+	addq $0, %rsp
 	pushq $.S0
 	call C_String
 	addq $8, %rsp
@@ -106,7 +117,7 @@ M_A_f:
 M_B_f:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $0, %rsp
+	addq $0, %rsp
 	pushq $.S1
 	call C_String
 	addq $8, %rsp

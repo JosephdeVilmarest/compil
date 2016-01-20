@@ -6,30 +6,44 @@ open Typeur
 let l_empty = ({pos_fname = ""; pos_lnum = 0; pos_bol = 0; pos_cnum = 0}, 
                      {pos_fname = ""; pos_lnum = 0; pos_bol = 0; pos_cnum = 0})
 
-(* une solution pour les chaines de caractères: maintenir une référence mise à nop au début de la fonction comp dans laquelle on met toutes les chaines rencontrées et ainsi à la fin on les met dans le data, on les associe à des entiers. La référence numero sera modifié dès qu'on écrira une chaine ou une étiquette *)
+(* une solution pour les chaines de caractères: maintenir une référence mise 
+    à nop au début de la fonction comp dans laquelle on met toutes les chaines 
+    rencontrées et ainsi à la fin on les met dans le data, on les associe à des
+    entiers. La référence numero sera modifié dès qu'on écrira une chaine 
+    ou une étiquette *)
 
 module Omaxmap = Map.Make(String)
-let omax_empty = Omaxmap.add "Nothing" (0, 0) (Omaxmap.add "Null" (0, 0) (Omaxmap.add "String" (0, 0) (Omaxmap.add "AnyRef" (0, 0) (Omaxmap.add "Unit" (0, 0) (Omaxmap.add "Int" (0, 0) (Omaxmap.add "Boolean" (0, 0) (Omaxmap.add "AnyVal" (0, 0) (Omaxmap.add "Any" (0, 0) Omaxmap.empty))))))))
+let omax_empty = Omaxmap.add "Nothing" (0, 0) (Omaxmap.add "Null" (0, 0) 
+        (Omaxmap.add "String" (0, 0) (Omaxmap.add "AnyRef" (0, 0) 
+        (Omaxmap.add "Unit" (0, 0) (Omaxmap.add "Int" (0, 0) 
+        (Omaxmap.add "Boolean" (0, 0) (Omaxmap.add "AnyVal" (0, 0) 
+                                (Omaxmap.add "Any" (0, 0) Omaxmap.empty))))))))
 
-module Key = struct type t = string * string let compare = Pervasives.compare end
+module Key = struct type t = string*string let compare = Pervasives.compare end
 module Ocmap = Map.Make(Key) (* donne les offset des champs d'une classe *)
 module Ommap = Map.Make(Key) (* donne les offset des méthodes d'une classe *)
 
 module Dmap = Map.Make (String) (* donne le descripteur d'une classe *)
-let descr_empty = Dmap.add "Nothing" ["D_Null"] (Dmap.add "Null" ["D_String"] (Dmap.add "String" ["D_AnyRef"] (Dmap.add "AnyRef" ["D_Any"] (Dmap.add "Unit" ["D_AnyVal"] (Dmap.add "Int" ["D_AnyVal"] (Dmap.add "Boolean" ["D_AnyVal"] (Dmap.add "AnyVal" ["D_Any"] (Dmap.add "Any" ["D_Any"] Dmap.empty))))))))
+let descr_empty = Dmap.add "Nothing" ["D_Null"] (Dmap.add "Null" ["D_String"] 
+        (Dmap.add "String" ["D_AnyRef"] (Dmap.add "AnyRef" ["D_Any"] 
+        (Dmap.add "Unit" ["D_AnyVal"] (Dmap.add "Int" ["D_AnyVal"] 
+        (Dmap.add "Boolean" ["D_AnyVal"] (Dmap.add "AnyVal" ["D_Any"] 
+                                   (Dmap.add "Any" ["D_Any"] Dmap.empty))))))))
 
 let chaines = ref nop and numero = ref 0 and descr = ref descr_empty
 and omax = ref omax_empty and oc = ref Ocmap.empty and om = ref Ommap.empty
 and thisref = ref ""
 
-module Emap = Map.Make(String) (* donne l'offset par rapport à rsp de l'objet associé a la string (variable locale) *)     
+module Emap = Map.Make(String)
+(* donne l'offset par rapport à rsp des variables locales *)     
 
         
 
 
 (** Compilation des expressions et des méthodes (car tout est lié !) **)
 
-(* allocation: au début d'une méthode on alloue l'espace nécessaire et on attribue une adresse à chaque variable locale qui intervient *)
+(* allocation: au début d'une méthode on alloue l'espace nécessaire et on 
+    attribue une adresse à chaque variable locale qui intervient *)
 let rec alloc_expr (env, k) e = match e.e with
     | Epar e -> alloc_expr (env, k) e
     | Eaccexp (a,e) -> alloc_expr (env, k) e
@@ -47,8 +61,10 @@ let rec alloc_expr (env, k) e = match e.e with
 
 and alloc_bloc (env, k) b = match b.b with
     | [] -> (env, k)
-    | {b1= Bvar v ;lb1=_}::q -> alloc_bloc (Emap.add (id_of_var v) (k-1) env, k-1) {b=q; lb=b.lb}
-    | {b1= Bexpr e ;lb1=_}::q -> alloc_bloc (alloc_expr (env, k) e) {b=q; lb=b.lb}
+    | {b1= Bvar v ;lb1=_}::q -> 
+            alloc_bloc (Emap.add (id_of_var v) (k-1) env, k-1) {b=q; lb=b.lb}
+    | {b1= Bexpr e ;lb1=_}::q ->
+            alloc_bloc (alloc_expr (env, k) e) {b=q; lb=b.lb}
 
 let alloc_methode m =
     let e = exp_of_m m in alloc_expr (Emap.empty, 0) e
@@ -83,7 +99,8 @@ let rec compile_expr env e = match e.e with
             pushq (reg rax)
     
     | Ethis ->
-            nop
+        (* on doit avoir à ce moment là un objet de classe !thisref dans r15 *)
+            pushq (reg r15)
      
     | Enull ->
             pushq (imm 0) ++ 
@@ -94,17 +111,25 @@ let rec compile_expr env e = match e.e with
     | Epar e -> compile_expr env e
     
     | Eacc {a= Aid id; la=_} -> 
-        (try let o = 8*Emap.find id env   in 
-            pushq (ind ~ofs:o rbp) (* c'est le cas où id est une variable locale, cas le plus simple *)
-        with Not_found ->  (* dans ce cas id est le champ de la classe this *)
+        (try let o = 8*Emap.find id env in
+        (* cas où id est une variable locale.
+            La variable id est stockée dans rbp + o *) 
+            pushq (ind ~ofs:o rbp)
+        with Not_found ->  
+        (* cas où id est un champ de la classe this.
+            A-t-on l'objet en question dans r15 ?
+            Si on est en train de compiler une méthode, aucun objet n'a été mis
+            dans r15 et cela pose peut être problème.
+            On peut essayer de mettre un objet dans r15 juste après avoir
+            compilé le constructeur d'une classe *)
             let c = !thisref in
             let o = 8*(Ocmap.find (c, id) !oc) in
-            pushq (ind ~ofs:o r15)) (* on mettra dans r15 l'adresse d'un objet avant d'appeler une de ses méthodes *)
-            
+            pushq (ind ~ofs:o r15))     
     | Eacc {a= Aexpid (e, id); la=loc} ->
-        (* il faut accéder au champ id de l'objet e, donc on regarde la classe de e et on utilise oc *)
-        if e.e = Ethis then compile_expr env {e= (Eacc {a= Aid id; la= loc}); le= e.le; te= e.te}
-        else
+        (* il faut accéder au champ id de l'objet e, 
+            donc on regarde la classe de e et on utilise oc *)
+        (* si e = Ethis il n'y a pas de problème car on met r15 dans rax, et le
+            résultat est le même que pour Eacc {Aid id ...} *)
         let Typ(c,_) = e.te.t in
         let o = 8*(Ocmap.find (c, id) !oc) in
         compile_expr env e ++
@@ -112,51 +137,53 @@ let rec compile_expr env e = match e.e with
             pushq (ind ~ofs:o rax)
             
     | Eaccexp ({a= Aid id; la=_}, e) -> 
-    (* il faut mettre unit sur la pile ? est-ce qu'on construit vraiment un objet unit ???
-        je pense qu'il vaut mieux mettre le résultat sur la pile mais peut être pas *)
+    (* il faut mettre unit sur la pile ? 
+        est-ce qu'on construit vraiment un objet unit ??? *)
         compile_expr env e ++
             popq (rax) ++
-        (try let o = 8*Emap.find id env in
+        (try let o = 8*(Emap.find id env) in
+        (* variable locale de la méthode *)
             movq (reg rax) (ind ~ofs:o rbp)
         with Not_found ->
-            let c = !thisref in
-            let o = 8*(Ocmap.find (c, id) !oc) in
-            
+        (* champ de l'objet qui se trouve dans r15 *)
+        let c = !thisref in
+        let o = 8*(Ocmap.find (c, id) !oc) in            
             movq (reg rax) (ind ~ofs:o r15)) ++
             pushq (imm 0) ++
             call "C_Unit" ++
             addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     | Eaccexp ({a= Aexpid (e1, id); la=loc}, e2) ->
-        if e1.e = Ethis then compile_expr env {e= (Eaccexp ({a= Aid id; la= loc}, e2)); le= e.le; te= e.te}
-        else
         let Typ(c,_) = e1.te.t in
         let o = 8*(Ocmap.find (c, id) !oc) in
         compile_expr env e1 ++
         compile_expr env e2 ++
             popq (rbx) ++
             popq (rax) ++
+        (* si e1 = Ethis on met r15 dans rax *)
             movq (reg rbx) (ind ~ofs:o rax) ++
             pushq (imm 0) ++
             call "C_Unit" ++
             addq (imm 8) (reg rsp) ++
             pushq (reg rax)
     
-    | Eaccargexp ({a= Aid id; la=_}, ar, le) -> (* que mettre dans r15 ? *)
+    | Eaccargexp ({a= Aid id; la=_}, _, le) ->
+        (* dans ce cas on appelle la méthode de la classe en cours *)
         let c = !thisref in
         let o = 8 * (Ommap.find (c, id) !om) in
-        List.fold_right (fun e code -> code ++ compile_expr env e) le nop ++
-            movq (ilab ("D_"^c)) (reg rbx) ++  (* avant je faisais juste un call ("M_"^c^"_"^id) *)
+        List.fold_left (fun code e -> compile_expr env e ++ code) nop le ++
+            movq (ilab ("D_"^c)) (reg rbx) ++
             call_star (ind ~ofs:o rbx) ++
-            addq (imm (8*List.length le)) (reg rsp) ++
+            addq (imm (8*List.length le)) (reg rsp) ++ (* on dépile *)
             pushq (reg rax)
     | Eaccargexp ({a= Aexpid (e,id); la=_}, ar, le) ->
         let Typ(c,_) = e.te.t in
         let o = 8 * (Ommap.find (c, id) !om) in
-        List.fold_right (fun e code -> code ++ compile_expr env e) le nop ++
+        List.fold_left (fun code e -> compile_expr env e ++ code) nop le ++
             movq (ilab ("D_"^c)) (reg rbx) ++
+            
+            movq (reg r15) (reg r9) ++ (** énorme bug **)
         compile_expr env e ++
-            movq (reg r15) (reg r9) ++
             popq (r15) ++
             
             call_star (ind ~ofs:o rbx) ++
@@ -165,8 +192,9 @@ let rec compile_expr env e = match e.e with
             addq (imm (8*List.length le)) (reg rsp) ++
             pushq (reg rax)
     
-    | Enewidargexp (s, ar, le) -> (* on met les expressions sur la pile et on appelle le constructeur *)
-        List.fold_right (fun e code -> compile_expr env e ++ code) le nop ++
+    | Enewidargexp (s, ar, le) -> 
+    (* on met les expressions sur la pile et on appelle le constructeur *)
+        List.fold_left (fun code e -> compile_expr env e ++ code) nop le ++
             call ("C_"^s) ++
             addq (imm (8*(List.length le))) (reg rsp) ++
             pushq (reg rax)
@@ -195,7 +223,8 @@ let rec compile_expr env e = match e.e with
         numero:= !numero + 1;
             compile_expr env e ++
             popq (rax) ++
-            cmpq (imm 0) (ind ~ofs:8 rax) ++ (* on teste si rax = 0 car sinon rax = 1 *)
+            (* on teste si rax = 0 car sinon rax = 1 *)
+            cmpq (imm 0) (ind ~ofs:8 rax) ++
             je ("L"^s) ++
             compile_expr env f ++
             popq (rax) ++
@@ -204,7 +233,7 @@ let rec compile_expr env e = match e.e with
             call "C_Boolean" ++
             addq (imm 8) (reg rsp) ++
             pushq (reg rax)
-    | Eop (e, o, f) when o.o = Ou -> (* il faut évaluer paresseusement encore *)
+    | Eop (e, o, f) when o.o = Ou ->
         let s = string_of_int !numero in
         numero:= !numero + 1;
             compile_expr env e ++
@@ -264,8 +293,10 @@ let rec compile_expr env e = match e.e with
             popq (rbx) ++
             popq (rax) ++
             (match o.o with
-                | Ne -> cmpq (reg rax) (reg rbx)  ++ setne (reg cl) ++ movzbq (reg cl) rcx
-                | _ ->  cmpq (reg rax) (reg rbx)  ++ sete (reg cl) ++ movzbq (reg cl) rcx)
+                | Ne -> cmpq (reg rax) (reg rbx)  ++ setne (reg cl) ++
+                        movzbq (reg cl) rcx
+                | _ ->  cmpq (reg rax) (reg rbx)  ++ sete (reg cl) ++ 
+                        movzbq (reg cl) rcx)
             ++
             pushq (reg rcx) ++
             call "C_Boolean" ++
@@ -331,18 +362,20 @@ let rec compile_expr env e = match e.e with
             jmp ("L"^s1) ++
         label ("L"^s2)
     
-    | Ereturnvide -> (* on ne remet rien sur la pile, on se contente de mettre la valeur à retourner dans rax *)
+    | Ereturnvide -> 
+        (* on ne remet rien sur la pile, on se contente de 
+            mettre la valeur à retourner dans rax *)
             movq (imm 0) (reg rax) ++
             movq (reg rbp) (reg rsp) ++
             popq (rbp) ++
-            ret (* doit-on mettre le ret et les modif re rsp et rbp ? Je pense que oui *)
+            ret
     | Ereturn e -> 
         compile_expr env e ++ popq (rax) ++ 
             movq (reg rbp) (reg rsp) ++
             popq (rbp) ++
             ret
     
-    | Eprint e when e.te.t = Typ ("Int", {at= []; lat= l_empty}) -> (* on ne remet rien sur la pile après avoir affiché *)
+    | Eprint e when e.te.t = Typ ("Int", {at= []; lat= l_empty}) ->
         compile_expr env e ++
             call "print_int" ++ (* ici e est un entier *)
             addq (imm 8) (reg rsp) ++
@@ -372,18 +405,31 @@ and compile_bl env bl = match bl.b1 with
             movq (reg rax) (ind ~ofs:(8*(Emap.find id env)) rbp)
         
     | Bexpr e ->
-        compile_expr env e (* faut-il dépiler pour ne pas faire grossir la pile avec ++ addq (imm 8) (reg rsp) *)
+        compile_expr env e 
+        
 
 and compile_methode m c =
-    let s = ident_of_m m and lp = param_of_m m and e = exp_of_m m and k = ref 1 in
-    (* il y a l'ancienne valeur de rbp et l'adresse de retour en sommet de pile *)
+    let s = ident_of_m m and lp = param_of_m m 
+                                            and e = exp_of_m m and k = ref 1 in
+    (* il y a l'ancienne valeur de rbp et 
+        l'adresse de retour en sommet de pile *)
     let env, taille = alloc_methode m in
     label ("M_"^c^"_"^s) ++
-        pushq (reg rbp) ++ (* il faut garder en mémoire rbp pour le restaurer *)
+        pushq (reg rbp) ++ (* il faut garder en mémoire rbp *)
         movq (reg rsp) (reg rbp) ++
-        subq (imm (-8*taille)) (reg rsp) ++ (* on crée le tableau d'activation qui commence en rsp et se finit en rsp-8(taille-1) *)
+        (* on place rbp au sommet de la pile pour allouer de l'espace aux 
+            variables locales et y accéder avec un offset constant 
+            par rapport à rbp *)
+        addq (imm (8*taille)) (reg rsp) ++ 
+        (* on crée le tableau d'activation qui commence en rbp 
+            et se finit en rbp-8(-taille-1)  avec taille entier négatif*)
         
-        compile_expr (List.fold_left (fun e p -> k:=!k + 1; Emap.add p !k e) env (List.map (fun p -> let (id,_) = p.p in id) lp)) e ++
+        compile_expr (List.fold_left (fun e p -> k:=!k + 1; Emap.add p !k e) 
+                    env (List.map (fun p -> let (id,_) = p.p in id) lp)) e ++
+        (* le List.fold_left stocke dans env les paramètres de la méthode
+            auxquels on veut accéder à partir de rbp. On fait commencer les
+            offset à 2 car il y a sur la pile l'ancien rbp et l'adresse de 
+            retour *)
         popq (rax) ++
         
         movq (reg rbp) (reg rsp) ++ (* on supprime les variables allouées *)
@@ -412,20 +458,25 @@ let aux_decl d c c_extends l numc numm = match d.d with
         (* il faut regarder si id est dans la classe extends *)
         if Ocmap.exists (fun (c, x) k -> x = c) !oc then ()
         else (oc:= Ocmap.add (c, id) !numc !oc; numc:= !numc+1)
-    | Dmethode {m=Mdef (s,_,_,_,_); lm=_} -> (* on sait ici que s n'est pas dans la classe extends *)
+    | Dmethode {m=Mdef (s,_,_,_,_); lm=_} ->
+        (* on sait ici que s n'est pas dans la classe extends *)
         l:= List.append !l ["M_"^c^"_"^s];
         om:= Ommap.add (c, s) !numm !om; numm:= !numm+1
-    | Dmethode {m=Moverride (s,_,_,_,_); lm=_} -> (* on sait ici que s est dans extends, on ne change pas son offset *)
+    | Dmethode {m=Moverride (s,_,_,_,_); lm=_} ->
+        (* on sait ici que s est dans extends, on ne change pas son offset *)
         l:= aux_modifie ("M_"^c^"_"^s) !l (Ommap.find (c,s) !om)
 
 let comp_classe cl =
     let (c,_,lp,t,_,ld) = cl.c in let Typ (c_extends,_) = t.t in
     thisref:= c;
     let n1, n2 = Omaxmap.find c_extends !omax in
-    let numc = ref (n1+1) and numm = ref (n2+1) in 
-    let l = ref (("D_"^c_extends)::(List.tl (Dmap.find c_extends !descr))) in (* on initialise l avec c_extends *)
-    Ocmap.iter (fun (s, x) k -> oc:= Ocmap.add (c,x) k !oc) (Ocmap.filter (fun (s, x) k -> s = c_extends) !oc);
-    Ommap.iter (fun (s, x) k -> om:= Ommap.add (c,x) k !om) (Ommap.filter (fun (s, x) k -> s = c_extends) !om);
+    let numc = ref (n1+1) and numm = ref (n2+1) in
+    (* on initialise l avec c_extends *)
+    let l = ref (("D_"^c_extends)::(List.tl (Dmap.find c_extends !descr))) in
+    Ocmap.iter (fun (s, x) k -> oc:= Ocmap.add (c,x) k !oc) 
+                            (Ocmap.filter (fun (s, x) k -> s = c_extends) !oc);
+    Ommap.iter (fun (s, x) k -> om:= Ommap.add (c,x) k !om) 
+                            (Ommap.filter (fun (s, x) k -> s = c_extends) !om);
     List.iter (fun p -> aux_param p c c_extends numc) lp;
     List.iter (fun d -> aux_decl d c c_extends l numc numm) ld;
     omax:= Omaxmap.add c (!numc, !numm) !omax;
@@ -435,71 +486,91 @@ let rec cherche_expr id cl = function
     | [] when (ident_of_class cl = "Any") -> failwith "expression non trouvée"
     | [] ->
         let Typ(c_extends,_) = (extends_of_class cl).t in
-        let cl_extends = (Cmap.find c_extends ((Envmap.find c_extends !envmap).classes)).classe in
+        let cl_extends = (Cmap.find c_extends 
+                           ((Envmap.find c_extends !envmap).classes)).classe in
             cherche_expr id cl_extends (dec_of_class cl_extends)
     | {d=Dvar v; ld=_}::q when id_of_var v = id -> exp_of_var v
     | x::q -> cherche_expr id cl q
 
 let rec aux_position id = function
     | [] -> failwith "paramètre non trouvé"
-    | x::q when x = id -> 1
+    | x::q when x = id -> 0
     | x::q -> 1 + aux_position id q
 
 let constr_of_class cl =
-(* on a un certains nombre de champs de cl avec leur offset dans !oc.
-il y a des paramètres et des variables *)
-    let c = ident_of_class cl and lp = param_of_class cl and ld = dec_of_class cl in
+    let c = ident_of_class cl and lp = param_of_class cl
+                                                    and ld = dec_of_class cl in
     thisref:= c;
     let l1 = Ocmap.bindings (Ocmap.filter (fun (s, id) k -> s=c) !oc) in
-    let lid = List.sort (fun id1 id2 -> Ocmap.find (c,id1) !oc - Ocmap.find (c,id2) !oc) (List.map (fun ((s,id), k) -> id) l1) in
+    let lid = List.sort 
+          (fun id1 id2 -> Ocmap.find (c,id1) !oc - Ocmap.find (c,id2) !oc)
+                                       (List.map (fun ((s,id), k) -> id) l1) in
     let nbc = List.length lid in
     label ("C_"^c) ++
+        pushq (reg rbp) ++
+	    movq (reg rsp) (reg rbp) ++
+    
         movq (imm (8*(nbc+1))) (reg rdi) ++
         call "malloc" ++
-        (* on empile rax pour le sauvegarder et le redonner à la fin *)
         pushq (reg r15) ++ (* on sauvegarde r15 *)
+        (* on met l'objet que l'on construit dans r15 *)
         movq (reg rax) (reg r15) ++
+        (* on sauvegarde rax qui peut tout à fait être modifié *)
         pushq (reg rax) ++
-        movq (reg rax) (reg r12) ++ (* on met rax dans r12 que l'on augmentera petit à petit *)
+        (* on met rax dans r12 que l'on augmentera petit à petit *)
+        movq (reg rax) (reg r12) ++
         movq (ilab ("D_"^c)) (ind (r12)) ++
         List.fold_left (fun code id -> 
-                                code ++
-                                addq (imm 8) (reg r12) ++
-                                pushq (reg r12) ++
-                                (match List.mem id (List.map (fun p -> let (id,_) = p.p in id) lp) with
-                                    | true ->
-                                        let o = 8*(aux_position id (List.map (fun p -> let (id,_) = p.p in id) lp)) in
-                                        pushq (ind ~ofs:o rsp) (* ici rsp pointe sur l'adresse de retour*)
-                                    | false -> 
-                                        let e = cherche_expr id cl ld in
-                                        compile_expr Emap.empty e) ++
+                    code ++
+                    addq (imm 8) (reg r12) ++
+                    pushq (reg r12) ++
+                    (match List.mem id 
+                           (List.map (fun p -> let (id,_) = p.p in id) lp) with
+                        | true ->
+                            (* on ajoute 2 car il y a l'ancien rbp et l'adresse 
+                                de retour au dessus de rbp *)
+                            let o = 8*(2 + aux_position id (List.map 
+                                      (fun p -> let (id,_) = p.p in id) lp)) in
+                                pushq (ind ~ofs:o rbp)
+                        | false -> 
+                            let e = cherche_expr id cl ld in
+                            compile_expr Emap.empty e) ++
                                 popq (rbx) ++
                                 popq (r12) ++
                                 movq (reg rbx) (ind (r12))
                                 ) nop lid ++
         popq (rax) ++
         popq (r15) ++
+        
+        movq (reg rbp) (reg rsp) ++
+	    popq (rbp) ++
         ret
 
 let compile_methodes_classe cl =
     let c = ident_of_class cl in
     thisref:= c;
-    List.fold_left (fun code d -> code ++ (match d.d with
-                                                | Dvar _ -> nop
-                                                | Dmethode m -> compile_methode m c)) nop (dec_of_class cl)
+    List.fold_left (fun code d -> 
+                    code ++
+                    (match d.d with
+                        | Dvar _ -> nop
+                        | Dmethode m -> compile_methode m c))
+                                                          nop (dec_of_class cl)
 
 let compile_classes lc cM =
-    let cm = {c= ("Main",[],[],{t=Typ("Any",{at= [];lat= l_empty}); lt=l_empty},[],cM.cM);lc= l_empty} in
+    let cm = {c= ("Main",[],[],{t=Typ("Any",{at= [];lat= l_empty}); lt=l_empty}
+                                                     ,[],cM.cM);lc= l_empty} in
     List.iter (fun cl -> comp_classe cl) (cm::lc);
     List.fold_left (fun code cl -> code ++ constr_of_class cl) nop (cm::lc),
-    List.fold_left (fun code cl -> code ++ compile_methodes_classe cl) nop (cm::lc)
+    List.fold_left (fun code cl -> code ++ compile_methodes_classe cl)
+                                                                   nop (cm::lc)
 
 
 
 (** Compilation de la classe Main (inutile) **)
 
 let compile_classe_main cM =
-    let cl = {c= ("Main",[],[],{t=Typ("Any",{at= [];lat= l_empty}); lt=l_empty},[],cM.cM);lc= l_empty} in
+    let cl = {c= ("Main",[],[],{t=Typ("Any",{at= [];lat= l_empty}); lt=l_empty}
+                                                     ,[],cM.cM);lc= l_empty} in
     comp_classe cl;
     let constr_Main = constr_of_class cl
     and meth_Main = compile_methodes_classe cl in
@@ -518,15 +589,13 @@ let comp fichier =
 	{text =
 	glabel "main" ++
 	    call "C_Main" ++ 
-	    (* dans rax on a l'adresse de l'objet, on peut le mettre dans la pile et le dépiler dans 
-	        M_Main_main si c'est plus facile lors de l'écriture de la compilation des méthodes *)
-	    pushq (reg rax) ++
+	    movq (reg rax) (reg r15) ++ (* on initialise r15 *)
 	    call "M_Main_main" ++
-	    addq (imm 8) (reg rsp) ++
 	    xorq (reg rax) (reg rax) ++
 	    ret ++
-        (* le constructeur de Main sert à stocker les variables définies dans Main avant Main_main *)
-        codeclasses ++ codemethodes ++
+        (* le constructeur de Main sert à stocker les variables
+            définies dans Main avant Main_main *)
+    codeclasses ++ codemethodes ++
     (* on s'occupe des classes prédéfinies *)
     label "C_Nothing" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
@@ -540,41 +609,48 @@ let comp fichier =
         ret ++
     label "C_String" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
-        movq (imm 16) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_String") (ind (r12)) ++
+        movq (imm 16) (reg rdi) ++ call "malloc" ++ 
+        movq (reg rax) (reg r12) ++ movq (ilab "D_String") (ind (r12)) ++
         movq (ind ~ofs:16 rbp) (reg rbx) ++ movq (reg rbx) (ind ~ofs:8 r12) ++
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "C_AnyRef" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_AnyRef") (ind (r12)) ++
+        movq (imm 8) (reg rdi) ++ call "malloc" ++ 
+        movq (reg rax) (reg r12) ++ movq (ilab "D_AnyRef") (ind (r12)) ++
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "C_Any" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Any") (ind (r12)) ++ 
+        movq (imm 8) (reg rdi) ++ call "malloc" ++ 
+        movq (reg rax) (reg r12) ++ movq (ilab "D_Any") (ind (r12)) ++ 
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "C_Boolean" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
-        movq (imm 16) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Boolean") (ind (r12)) ++
+        movq (imm 16) (reg rdi) ++ call "malloc" ++ 
+        movq (reg rax) (reg r12) ++ movq (ilab "D_Boolean") (ind (r12)) ++
         movq (ind ~ofs:16 rbp) (reg rbx) ++ movq (reg rbx) (ind ~ofs:8 r12) ++
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "C_Int" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
-        movq (imm 16) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Int") (ind (r12)) ++
+        movq (imm 16) (reg rdi) ++ call "malloc" ++ 
+        movq (reg rax) (reg r12) ++ movq (ilab "D_Int") (ind (r12)) ++
         movq (ind ~ofs:16 rbp) (reg rbx) ++ movq (reg rbx) (ind ~ofs:8 r12) ++
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "C_Unit" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
-        movq (imm 16) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_Unit") (ind (r12)) ++
+        movq (imm 16) (reg rdi) ++ call "malloc" ++ 
+        movq (reg rax) (reg r12) ++ movq (ilab "D_Unit") (ind (r12)) ++
         movq (ind ~ofs:16 rbp) (reg rbx) ++ movq (reg rbx) (ind ~ofs:8 r12) ++
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "C_AnyVal" ++
         pushq (reg rbp) ++ movq (reg rsp) (reg rbp) ++
-        movq (imm 8) (reg rdi) ++ call "malloc" ++ movq (reg rax) (reg r12) ++ movq (ilab "D_AnyVal") (ind (r12)) ++ 
+        movq (imm 8) (reg rdi) ++ call "malloc" ++ 
+        movq (reg rax) (reg r12) ++ movq (ilab "D_AnyVal") (ind (r12)) ++ 
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret ++
     label "print_int" ++
@@ -596,12 +672,13 @@ let comp fichier =
         movq (reg rbp) (reg rsp) ++ popq (rbp) ++
         ret; 
 	data =
-	    Dmap.fold (fun s l code -> code ++ label ("D_"^s) ++ address l) !descr nop ++
+	    Dmap.fold (fun s l code -> code ++ label ("D_"^s) ++ address l)
+	                                                              !descr nop ++
     label ".Sprint_int" ++ string "%d" ++
 	label ".Sprint_string" ++ string "%s" ++
     label ".SNothing" ++
         address ["D_Nothing"] ++
     label ".SNull" ++
         address ["D_Null"] ++
-	    !chaines
+	!chaines
 	}

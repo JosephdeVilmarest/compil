@@ -51,15 +51,70 @@ C_A:
 	movq %rbp, %rsp
 	popq %rbp
 	ret
+C_B:
+	pushq %rbp
+	movq %rsp, %rbp
+	movq $24, %rdi
+	call malloc
+	pushq %r15
+	movq %rax, %r15
+	pushq %rax
+	movq %rax, %r12
+	movq $D_B, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $.S1
+	call C_String
+	addq $8, %rsp
+	pushq %rax
+	call print_string
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	addq $8, %r12
+	pushq %r12
+	pushq $.S2
+	call C_String
+	addq $8, %rsp
+	pushq %rax
+	call print_string
+	addq $8, %rsp
+	pushq $0
+	call C_Unit
+	addq $8, %rsp
+	pushq %rax
+	popq %rbx
+	popq %r12
+	movq %rbx, 0(%r12)
+	popq %rax
+	popq %r15
+	movq %rbp, %rsp
+	popq %rbp
+	ret
 M_Main_main:
 	pushq %rbp
 	movq %rsp, %rbp
-	addq $-8, %rsp
+	addq $-24, %rsp
 	call C_A
 	addq $0, %rsp
 	pushq %rax
 	popq %rax
 	movq %rax, -8(%rbp)
+	call C_B
+	addq $0, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, -16(%rbp)
+	call C_B
+	addq $0, %rsp
+	pushq %rax
+	popq %rax
+	movq %rax, -24(%rbp)
 	popq %rax
 	movq %rbp, %rsp
 	popq %rbp
@@ -187,6 +242,8 @@ D_AnyRef:
 	.quad D_Any
 D_AnyVal:
 	.quad D_Any
+D_B:
+	.quad D_A
 D_Boolean:
 	.quad D_AnyVal
 D_Int:
@@ -211,3 +268,7 @@ D_Unit:
 	.quad D_Null
 .S0:
 	.string "new A\n"
+.S1:
+	.string "new A\n"
+.S2:
+	.string "new B\n"

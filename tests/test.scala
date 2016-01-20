@@ -1,18 +1,17 @@
-class A {
-  var a = 0;
-  def set_a(a: Int) { this.a = a }
+
+class Job[-A] { def work(x: A) {} }
+
+class Knot extends Job[Int] {
+  var j = new Job[Int]();
+  var acc = 1;
+  override def work(x: Int) {
+    if(x == 0)
+      print(x)
+    else {
+      work(x-1)
+    }
+  }
 }
 
-class B extends A {
-  override def set_a(b: Int) { this.a = b * 2 }
-}
+object Main { def main(a: Array[String]) { var k = new Knot(); a.work(0) } }
 
-object Main { def main(args: Array[String]) {
-  var a = new A();
-  var b = new B();
-  a.set_a(1);
-  b.set_a(1);
-  print(a.a); print("\n");
-  print(b.a); print("\n")
-}
-           }
